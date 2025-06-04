@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(const EasyRecipeApp());
@@ -11,14 +12,8 @@ class EasyRecipeApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'EasyRecipe',
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-      ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('Welcome to EasyRecipe! Phase 1 Initialized.'),
-        ),
-      ),
+      theme: ThemeData(primarySwatch: Colors.teal),
+      home: const HomeScreen(),
     );
   }
 }
