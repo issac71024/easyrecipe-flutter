@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/recipe.dart';
+import 'recipe_form.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -64,11 +65,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          recipeBox.add(Recipe(
-            title: '新食譜 ${DateTime.now().second}',
-            cuisine: '中式',
-            diet: '無',
-          ));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
+          );
         },
         child: const Icon(Icons.add),
       ),
