@@ -1,0 +1,20 @@
+{
+  "@@locale": "zh",
+  "appTitle": "簡易食譜",
+  "searchHint": "搜尋食譜...",
+  "noRecipe": "找不到食譜",
+  "addRecipe": "新增食譜",
+  "formTitle": "標題",
+  "formCuisine": "料理類型",
+  "formDiet": "飲食分類",
+  "formSave": "儲存",
+  "formChooseImage": "選擇圖片",
+  "formAddRecipeTitle": "新增一筆食譜",
+  "cuisineChinese": "中式",
+  "cuisineJapanese": "日式",
+  "cuisineWestern": "西式",
+  "dietNone": "無",
+  "dietVegetarian": "素食",
+  "dietHighProtein": "高蛋白",
+  "dietLowCarb": "低醣"
+}

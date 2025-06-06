@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/recipe.dart';
+import '../l10n/app_localizations.dart';
 
 class RecipeFormScreen extends StatefulWidget {
   const RecipeFormScreen({super.key});
@@ -14,8 +15,8 @@ class RecipeFormScreen extends StatefulWidget {
 class _RecipeFormScreenState extends State<RecipeFormScreen> {
   final _formKey = GlobalKey<FormState>();
   String title = '';
-  String cuisine = '中式';
-  String diet = '無';
+  String cuisine = 'chinese'; // ✅ 預設儲存代碼
+  String diet = 'none';
   File? imageFile;
 
   final picker = ImagePicker();
@@ -37,7 +38,6 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         cuisine: cuisine,
         diet: diet,
       );
-
       await box.add(recipe);
       if (!mounted) return;
       Navigator.pop(context);
@@ -46,8 +46,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('新增食譜')),
+      appBar: AppBar(title: Text(loc.formAddRecipeTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -58,34 +60,39 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
               ElevatedButton.icon(
                 onPressed: _pickImage,
                 icon: const Icon(Icons.image),
-                label: const Text('選擇圖片'),
+                label: Text(loc.formChooseImage),
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: '標題'),
+                decoration: InputDecoration(labelText: loc.formTitle),
                 validator: (value) =>
                     value == null || value.isEmpty ? '請輸入標題' : null,
                 onChanged: (value) => title = value,
               ),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: '料理類型'),
+                decoration: InputDecoration(labelText: loc.formCuisine),
                 value: cuisine,
-                items: ['中式', '日式', '西式']
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (value) => cuisine = value ?? '中式',
+                items: [
+                  DropdownMenuItem(value: 'chinese', child: Text(loc.cuisineChinese)),
+                  DropdownMenuItem(value: 'japanese', child: Text(loc.cuisineJapanese)),
+                  DropdownMenuItem(value: 'western', child: Text(loc.cuisineWestern)),
+                ],
+                onChanged: (value) => setState(() => cuisine = value ?? 'chinese'),
               ),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: '飲食分類'),
+                decoration: InputDecoration(labelText: loc.formDiet),
                 value: diet,
-                items: ['無', '素食', '高蛋白', '低醣']
-                    .map((d) => DropdownMenuItem(value: d, child: Text(d)))
-                    .toList(),
-                onChanged: (value) => diet = value ?? '無',
+                items: [
+                  DropdownMenuItem(value: 'none', child: Text(loc.dietNone)),
+                  DropdownMenuItem(value: 'vegetarian', child: Text(loc.dietVegetarian)),
+                  DropdownMenuItem(value: 'high_protein', child: Text(loc.dietHighProtein)),
+                  DropdownMenuItem(value: 'low_carb', child: Text(loc.dietLowCarb)),
+                ],
+                onChanged: (value) => setState(() => diet = value ?? 'none'),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _saveRecipe,
-                child: const Text('儲存'),
+                child: Text(loc.formSave),
               ),
             ],
           ),

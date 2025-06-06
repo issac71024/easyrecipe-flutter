@@ -1,0 +1,61 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appTitle => 'EasyRecipe';
+
+  @override
+  String get searchHint => 'Search recipes...';
+
+  @override
+  String get noRecipe => 'No recipes found.';
+
+  @override
+  String get addRecipe => 'Add Recipe';
+
+  @override
+  String get formTitle => 'Title';
+
+  @override
+  String get formCuisine => 'Cuisine';
+
+  @override
+  String get formDiet => 'Diet';
+
+  @override
+  String get formSave => 'Save';
+
+  @override
+  String get formChooseImage => 'Choose Image';
+
+  @override
+  String get formAddRecipeTitle => 'Add a New Recipe';
+
+  @override
+  String get cuisineChinese => 'Chinese';
+
+  @override
+  String get cuisineJapanese => 'Japanese';
+
+  @override
+  String get cuisineWestern => 'Western';
+
+  @override
+  String get dietNone => 'None';
+
+  @override
+  String get dietVegetarian => 'Vegetarian';
+
+  @override
+  String get dietHighProtein => 'High Protein';
+
+  @override
+  String get dietLowCarb => 'Low Carb';
+}

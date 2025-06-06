@@ -2,32 +2,65 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/recipe.dart';
 import 'recipe_form.dart';
+import '../l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final void Function(Locale) onLocaleChange;
+
+  const HomeScreen({super.key, required this.onLocaleChange});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  Map<String, String> translateCuisine(AppLocalizations loc) => {
+  'chinese': loc.cuisineChinese,
+  'japanese': loc.cuisineJapanese,
+  'western': loc.cuisineWestern,
+};
+
+Map<String, String> translateDiet(AppLocalizations loc) => {
+  'none': loc.dietNone,
+  'vegetarian': loc.dietVegetarian,
+  'high_protein': loc.dietHighProtein,
+  'low_carb': loc.dietLowCarb,
+};
   final recipeBox = Hive.box<Recipe>('recipes');
   String searchTerm = '';
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('EasyRecipe'),
+        title: Text(loc.appTitle),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'en') {
+                widget.onLocaleChange(const Locale('en'));
+              } else if (value == 'zh') {
+                widget.onLocaleChange(const Locale('zh'));
+              }
+            },
+            icon: const Icon(Icons.language),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'en', child: Text('English')),
+              const PopupMenuItem(value: 'zh', child: Text('繁體中文')),
+            ],
+          )
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search recipes...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: loc.searchHint,
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
                 filled: true,
                 fillColor: Colors.white,
               ),
@@ -48,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }).toList();
 
           if (filtered.isEmpty) {
-            return const Center(child: Text('No recipes found.'));
+            return Center(child: Text(loc.noRecipe));
           }
 
           return ListView.builder(
@@ -57,7 +90,10 @@ class _HomeScreenState extends State<HomeScreen> {
               final recipe = filtered[index];
               return ListTile(
                 title: Text(recipe.title),
-                subtitle: Text('${recipe.cuisine} • ${recipe.diet}'),
+                subtitle: Text(
+  '${translateCuisine(loc)[recipe.cuisine] ?? recipe.cuisine} • '
+  '${translateDiet(loc)[recipe.diet] ?? recipe.diet}'
+),
               );
             },
           );

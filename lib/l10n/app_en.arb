@@ -1,0 +1,20 @@
+{
+  "@@locale": "en",
+  "appTitle": "EasyRecipe",
+  "searchHint": "Search recipes...",
+  "noRecipe": "No recipes found.",
+  "addRecipe": "Add Recipe",
+  "formTitle": "Title",
+  "formCuisine": "Cuisine",
+  "formDiet": "Diet",
+  "formSave": "Save",
+  "formChooseImage": "Choose Image",
+  "formAddRecipeTitle": "Add a New Recipe",
+  "cuisineChinese": "Chinese",
+  "cuisineJapanese": "Japanese",
+  "cuisineWestern": "Western",
+  "dietNone": "None",
+  "dietVegetarian": "Vegetarian",
+  "dietHighProtein": "High Protein",
+  "dietLowCarb": "Low Carb"
+}
