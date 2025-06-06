@@ -16,5 +16,15 @@
   "dietNone": "None",
   "dietVegetarian": "Vegetarian",
   "dietHighProtein": "High Protein",
-  "dietLowCarb": "Low Carb"
+  "dietLowCarb": "Low Carb",
+  "minutes": "minutes",
+  "difficultyLabel": "Difficulty",
+  "formCookingTime": "Cooking Time (minutes)",
+  "formDifficulty": "Difficulty",
+  "difficultyEasy": "Easy",
+  "difficultyMedium": "Medium",
+  "difficultyHard": "Hard",
+  "formIngredients": "Ingredients",
+  "formSteps": "Steps",
+  "formTakePhoto": "Take Photo"
 }

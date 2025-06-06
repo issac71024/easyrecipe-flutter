@@ -14,15 +14,29 @@ class RecipeFormScreen extends StatefulWidget {
 
 class _RecipeFormScreenState extends State<RecipeFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  String title = '';
-  String cuisine = 'chinese'; // ✅ 預設儲存代碼
+  String cuisine = 'chinese';
   String diet = 'none';
+  int cookingTime = 0;
+  String difficulty = 'easy';
+  String ingredients = '';
+  String steps = '';
   File? imageFile;
+  String titleZh = '';
+  String titleEn = '';
 
   final picker = ImagePicker();
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImageFromGallery() async {
     final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        imageFile = File(picked.path);
+      });
+    }
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    final picked = await picker.pickImage(source: ImageSource.camera);
     if (picked != null) {
       setState(() {
         imageFile = File(picked.path);
@@ -34,9 +48,15 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     if (_formKey.currentState!.validate()) {
       final box = Hive.box<Recipe>('recipes');
       final recipe = Recipe(
-        title: title,
+        titleZh: titleZh,
+        titleEn: titleEn,
         cuisine: cuisine,
         diet: diet,
+        cookingTime: cookingTime,
+        difficulty: difficulty,
+        ingredients: ingredients,
+        steps: steps,
+        imagePath: imageFile?.path, // 請確保 model 有 imagePath
       );
       await box.add(recipe);
       if (!mounted) return;
@@ -57,16 +77,32 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
           child: ListView(
             children: [
               if (imageFile != null) Image.file(imageFile!),
-              ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.image),
-                label: Text(loc.formChooseImage),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _pickImageFromGallery,
+                    icon: const Icon(Icons.image),
+                    label: Text(loc.formChooseImage),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _pickImageFromCamera,
+                    icon: const Icon(Icons.camera_alt),
+                    label: Text(loc.formTakePhoto), // 加到 arb
+                  ),
+                ],
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: loc.formTitle),
+                decoration: InputDecoration(labelText: '${loc.formTitle}（繁體中文）'),
                 validator: (value) =>
                     value == null || value.isEmpty ? '請輸入標題' : null,
-                onChanged: (value) => title = value,
+                onChanged: (value) => titleZh = value,
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: '${loc.formTitle} (English)'),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Please enter title' : null,
+                onChanged: (value) => titleEn = value,
               ),
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: loc.formCuisine),
@@ -88,6 +124,36 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                   DropdownMenuItem(value: 'low_carb', child: Text(loc.dietLowCarb)),
                 ],
                 onChanged: (value) => setState(() => diet = value ?? 'none'),
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: loc.formCookingTime),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return '請輸入時間';
+                  if (int.tryParse(value) == null) return '請輸入有效數字';
+                  return null;
+                },
+                onChanged: (value) => cookingTime = int.tryParse(value) ?? 0,
+              ),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(labelText: loc.formDifficulty),
+                value: difficulty,
+                items: [
+                  DropdownMenuItem(value: 'easy', child: Text(loc.difficultyEasy)),
+                  DropdownMenuItem(value: 'medium', child: Text(loc.difficultyMedium)),
+                  DropdownMenuItem(value: 'hard', child: Text(loc.difficultyHard)),
+                ],
+                onChanged: (value) => setState(() => difficulty = value ?? 'easy'),
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: loc.formIngredients),
+                maxLines: 3,
+                onChanged: (value) => ingredients = value,
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: loc.formSteps),
+                maxLines: 5,
+                onChanged: (value) => steps = value,
               ),
               const SizedBox(height: 20),
               ElevatedButton(

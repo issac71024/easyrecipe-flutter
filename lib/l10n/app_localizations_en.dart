@@ -58,4 +58,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietLowCarb => 'Low Carb';
+
+  @override
+  String get minutes => 'minutes';
+
+  @override
+  String get difficultyLabel => 'Difficulty';
+
+  @override
+  String get formCookingTime => 'Cooking Time (minutes)';
+
+  @override
+  String get formDifficulty => 'Difficulty';
+
+  @override
+  String get difficultyEasy => 'Easy';
+
+  @override
+  String get difficultyMedium => 'Medium';
+
+  @override
+  String get difficultyHard => 'Hard';
+
+  @override
+  String get formIngredients => 'Ingredients';
+
+  @override
+  String get formSteps => 'Steps';
+
+  @override
+  String get formTakePhoto => 'Take Photo';
 }

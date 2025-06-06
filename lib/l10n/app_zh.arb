@@ -16,5 +16,15 @@
   "dietNone": "無",
   "dietVegetarian": "素食",
   "dietHighProtein": "高蛋白",
-  "dietLowCarb": "低醣"
+  "dietLowCarb": "低醣",
+  "minutes": "分鐘",
+  "difficultyLabel": "難度",
+  "difficultyEasy": "簡單",
+  "difficultyMedium": "中等",
+  "difficultyHard": "困難",
+  "formCookingTime": "烹飪時間（分鐘）",
+  "formDifficulty": "難度",
+  "formIngredients": "材料",
+  "formSteps": "步驟",
+  "formTakePhoto": "拍照"
 }

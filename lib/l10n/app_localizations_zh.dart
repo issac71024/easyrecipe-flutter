@@ -58,4 +58,34 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dietLowCarb => '低醣';
+
+  @override
+  String get minutes => '分鐘';
+
+  @override
+  String get difficultyLabel => '難度';
+
+  @override
+  String get formCookingTime => '烹飪時間（分鐘）';
+
+  @override
+  String get formDifficulty => '難度';
+
+  @override
+  String get difficultyEasy => '簡單';
+
+  @override
+  String get difficultyMedium => '中等';
+
+  @override
+  String get difficultyHard => '困難';
+
+  @override
+  String get formIngredients => '材料';
+
+  @override
+  String get formSteps => '步驟';
+
+  @override
+  String get formTakePhoto => '拍照';
 }

@@ -196,6 +196,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Low Carb'**
   String get dietLowCarb;
+
+  /// No description provided for @minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'minutes'**
+  String get minutes;
+
+  /// No description provided for @difficultyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty'**
+  String get difficultyLabel;
+
+  /// No description provided for @formCookingTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Cooking Time (minutes)'**
+  String get formCookingTime;
+
+  /// No description provided for @formDifficulty.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty'**
+  String get formDifficulty;
+
+  /// No description provided for @difficultyEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy'**
+  String get difficultyEasy;
+
+  /// No description provided for @difficultyMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get difficultyMedium;
+
+  /// No description provided for @difficultyHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get difficultyHard;
+
+  /// No description provided for @formIngredients.
+  ///
+  /// In en, this message translates to:
+  /// **'Ingredients'**
+  String get formIngredients;
+
+  /// No description provided for @formSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get formSteps;
+
+  /// No description provided for @formTakePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Photo'**
+  String get formTakePhoto;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

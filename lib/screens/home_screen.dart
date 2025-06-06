@@ -14,20 +14,34 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Map<String, String> translateCuisine(AppLocalizations loc) => {
-  'chinese': loc.cuisineChinese,
-  'japanese': loc.cuisineJapanese,
-  'western': loc.cuisineWestern,
-};
-
-Map<String, String> translateDiet(AppLocalizations loc) => {
-  'none': loc.dietNone,
-  'vegetarian': loc.dietVegetarian,
-  'high_protein': loc.dietHighProtein,
-  'low_carb': loc.dietLowCarb,
-};
   final recipeBox = Hive.box<Recipe>('recipes');
   String searchTerm = '';
+
+  Map<String, String> translateCuisine(AppLocalizations loc) => {
+    'chinese': loc.cuisineChinese,
+    'japanese': loc.cuisineJapanese,
+    'western': loc.cuisineWestern,
+  };
+
+  Map<String, String> translateDiet(AppLocalizations loc) => {
+    'none': loc.dietNone,
+    'vegetarian': loc.dietVegetarian,
+    'high_protein': loc.dietHighProtein,
+    'low_carb': loc.dietLowCarb,
+  };
+
+  String _translateDifficulty(String code, AppLocalizations loc) {
+  switch (code) {
+    case 'easy':
+      return loc.difficultyEasy;
+    case 'medium':
+      return loc.difficultyMedium;
+    case 'hard':
+      return loc.difficultyHard;
+    default:
+      return code;
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -74,31 +88,47 @@ Map<String, String> translateDiet(AppLocalizations loc) => {
         ),
       ),
       body: ValueListenableBuilder(
-        valueListenable: recipeBox.listenable(),
-        builder: (context, Box<Recipe> box, _) {
-          final filtered = box.values.where((recipe) {
-            return recipe.title.toLowerCase().contains(searchTerm.toLowerCase());
-          }).toList();
+  valueListenable: recipeBox.listenable(),
+  builder: (context, Box<Recipe> box, _) {
+    final loc = AppLocalizations.of(context)!;
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
-          if (filtered.isEmpty) {
-            return Center(child: Text(loc.noRecipe));
-          }
+    // 依語言搜尋對應 title
+    final filtered = box.values.where((recipe) {
+      final searchField = isZh ? recipe.titleZh : recipe.titleEn;
+      return searchField.toLowerCase().contains(searchTerm.toLowerCase());
+    }).toList();
 
-          return ListView.builder(
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              final recipe = filtered[index];
-              return ListTile(
-                title: Text(recipe.title),
-                subtitle: Text(
-  '${translateCuisine(loc)[recipe.cuisine] ?? recipe.cuisine} • '
-  '${translateDiet(loc)[recipe.diet] ?? recipe.diet}'
+    if (filtered.isEmpty) {
+      return Center(child: Text(loc.noRecipe));
+    }
+
+    return ListView.builder(
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        final recipe = filtered[index];
+        return ListTile(
+          title: Text(isZh ? recipe.titleZh : recipe.titleEn),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${translateCuisine(loc)[recipe.cuisine] ?? recipe.cuisine} • '
+                '${translateDiet(loc)[recipe.diet] ?? recipe.diet}',
+              ),
+              Text(
+                '⏱️ ${recipe.cookingTime} ${loc.minutes} • '
+                '${loc.difficultyLabel}：${_translateDifficulty(recipe.difficulty, loc)}',
+              ),
+              if (recipe.ingredients.isNotEmpty)
+                Text('📋 材料：${recipe.ingredients}', maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        );
+      },
+    );
+  },
 ),
-              );
-            },
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
