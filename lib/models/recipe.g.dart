@@ -25,13 +25,14 @@ class RecipeAdapter extends TypeAdapter<Recipe> {
       difficulty: fields[5] as String,
       ingredients: fields[6] as String,
       steps: fields[7] as String,
+      imagePath: fields[8] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Recipe obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.titleZh)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class RecipeAdapter extends TypeAdapter<Recipe> {
       ..writeByte(6)
       ..write(obj.ingredients)
       ..writeByte(7)
-      ..write(obj.steps);
+      ..write(obj.steps)
+      ..writeByte(8)
+      ..write(obj.imagePath);
   }
 
   @override

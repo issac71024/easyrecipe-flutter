@@ -88,4 +88,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formTakePhoto => 'Take Photo';
+
+  @override
+  String get deleteDialogTitle => 'Delete Recipe';
+
+  @override
+  String get deleteDialogContent => 'Are you sure you want to delete this recipe?';
+
+  @override
+  String get deleteCancel => 'Cancel';
+
+  @override
+  String get deleteConfirm => 'Delete';
 }

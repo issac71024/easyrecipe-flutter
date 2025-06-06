@@ -256,6 +256,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Take Photo'**
   String get formTakePhoto;
+
+  /// No description provided for @deleteDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Recipe'**
+  String get deleteDialogTitle;
+
+  /// No description provided for @deleteDialogContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this recipe?'**
+  String get deleteDialogContent;
+
+  /// No description provided for @deleteCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get deleteCancel;
+
+  /// No description provided for @deleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteConfirm;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

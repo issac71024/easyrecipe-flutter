@@ -26,5 +26,9 @@
   "difficultyHard": "Hard",
   "formIngredients": "Ingredients",
   "formSteps": "Steps",
-  "formTakePhoto": "Take Photo"
+  "formTakePhoto": "Take Photo",
+  "deleteDialogTitle": "Delete Recipe",
+  "deleteDialogContent": "Are you sure you want to delete this recipe?",
+  "deleteCancel": "Cancel",
+  "deleteConfirm": "Delete"
 }

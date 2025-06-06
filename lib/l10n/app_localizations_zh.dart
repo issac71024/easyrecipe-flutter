@@ -88,4 +88,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get formTakePhoto => '拍照';
+
+  @override
+  String get deleteDialogTitle => '刪除食譜';
+
+  @override
+  String get deleteDialogContent => '你確定要刪除此食譜嗎？';
+
+  @override
+  String get deleteCancel => '取消';
+
+  @override
+  String get deleteConfirm => '刪除';
 }
