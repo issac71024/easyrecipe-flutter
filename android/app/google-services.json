@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "513584448452",
+    "project_id": "easyrecipe-e50c7",
+    "storage_bucket": "easyrecipe-e50c7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:513584448452:android:fcc709b73d75f67b48da91",
+        "android_client_info": {
+          "package_name": "com.example.easyrecipe"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAX3xmEZiTsS2Pn_HmxJ5kNU3lypxIYcRE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

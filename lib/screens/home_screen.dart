@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/recipe.dart';
 import 'recipe_form.dart';
 import '../l10n/app_localizations.dart';
@@ -16,6 +19,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final recipeBox = Hive.box<Recipe>('recipes');
   String searchTerm = '';
+  User? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _user = FirebaseAuth.instance.currentUser;
+  }
 
   Map<String, String> translateCuisine(AppLocalizations loc) => {
     'chinese': loc.cuisineChinese,
@@ -39,6 +49,100 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    final googleUser = await GoogleSignIn().signIn();
+    if (googleUser == null) return;
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    final userCredential =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+    setState(() {
+      _user = userCredential.user;
+    });
+  }
+
+  Future<void> _signOut() async {
+    await GoogleSignIn().signOut();
+    await FirebaseAuth.instance.signOut();
+    setState(() {
+      _user = null;
+    });
+  }
+
+  Future<void> _backupToCloud() async {
+    if (_user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('請先登入 Google 帳號')),
+      );
+      return;
+    }
+    final uid = _user!.uid;
+    final recipes = recipeBox.values.toList();
+    final firestore = FirebaseFirestore.instance;
+    final batch = firestore.batch();
+    final userCollection = firestore.collection('users').doc(uid).collection('recipes');
+    // 先清空雲端舊資料（保證同步）
+    final oldDocs = await userCollection.get();
+    for (var doc in oldDocs.docs) {
+      batch.delete(doc.reference);
+    }
+    // 再新增所有本地資料
+    for (var recipe in recipes) {
+      final doc = userCollection.doc(recipe.key.toString());
+      batch.set(doc, {
+        'titleZh': recipe.titleZh,
+        'titleEn': recipe.titleEn,
+        'cuisine': recipe.cuisine,
+        'diet': recipe.diet,
+        'cookingTime': recipe.cookingTime,
+        'difficulty': recipe.difficulty,
+        'ingredients': recipe.ingredients,
+        'steps': recipe.steps,
+        'imagePath': recipe.imagePath,
+      });
+    }
+    await batch.commit();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('備份完成（雲端 Firestore）')),
+    );
+  }
+
+  Future<void> _restoreFromCloud() async {
+    if (_user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('請先登入 Google 帳號')),
+      );
+      return;
+    }
+    final uid = _user!.uid;
+    final firestore = FirebaseFirestore.instance;
+    final snapshot = await firestore.collection('users').doc(uid).collection('recipes').get();
+    final box = Hive.box<Recipe>('recipes');
+    await box.clear();
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final recipe = Recipe(
+        titleZh: data['titleZh'] ?? '',
+        titleEn: data['titleEn'] ?? '',
+        cuisine: data['cuisine'] ?? '',
+        diet: data['diet'] ?? '',
+        cookingTime: data['cookingTime'] ?? 0,
+        difficulty: data['difficulty'] ?? '',
+        ingredients: data['ingredients'] ?? '',
+        steps: data['steps'] ?? '',
+        imagePath: data['imagePath'] ?? '',
+      );
+      await box.add(recipe);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('還原完成（雲端 Firestore）')),
+    );
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
@@ -47,6 +151,34 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(loc.appTitle),
         actions: [
+          if (_user == null)
+            IconButton(
+              icon: const Icon(Icons.login),
+              tooltip: 'Google 登入',
+              onPressed: _signInWithGoogle,
+            )
+          else ...[
+            IconButton(
+              icon: const Icon(Icons.account_circle),
+              tooltip: _user?.displayName ?? '已登入',
+              onPressed: null,
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: '登出',
+              onPressed: _signOut,
+            ),
+          ],
+          IconButton(
+            icon: const Icon(Icons.cloud_upload),
+            tooltip: '雲端備份',
+            onPressed: _backupToCloud,
+          ),
+          IconButton(
+            icon: const Icon(Icons.cloud_download),
+            tooltip: '從雲端還原',
+            onPressed: _restoreFromCloud,
+          ),
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'en') {
@@ -60,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const PopupMenuItem(value: 'en', child: Text('English')),
               const PopupMenuItem(value: 'zh', child: Text('繁體中文')),
             ],
-          )
+          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
@@ -91,9 +223,9 @@ class _HomeScreenState extends State<HomeScreen> {
           final filtered = box.values.where((recipe) {
             final title = isZh ? recipe.titleZh : recipe.titleEn;
             return
-              title.toLowerCase().contains(searchLower) ||
-              recipe.ingredients.toLowerCase().contains(searchLower) ||
-              recipe.cookingTime.toString().contains(searchLower);
+                title.toLowerCase().contains(searchLower) ||
+                recipe.ingredients.toLowerCase().contains(searchLower) ||
+                recipe.cookingTime.toString().contains(searchLower);
           }).toList();
 
           if (filtered.isEmpty) {
@@ -106,24 +238,24 @@ class _HomeScreenState extends State<HomeScreen> {
               final recipe = filtered[index];
               return ListTile(
                 leading: (recipe.imagePath != null && recipe.imagePath!.isNotEmpty)
-                  ? Image.file(
-                      File(recipe.imagePath!),
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
-                    )
-                  : const Icon(Icons.image_not_supported, size: 40),
+                    ? Image.file(
+                        File(recipe.imagePath!),
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                      )
+                    : const Icon(Icons.image_not_supported, size: 40),
                 title: Text(isZh ? recipe.titleZh : recipe.titleEn),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '${translateCuisine(loc)[recipe.cuisine] ?? recipe.cuisine} • '
-                      '${translateDiet(loc)[recipe.diet] ?? recipe.diet}',
+                          '${translateDiet(loc)[recipe.diet] ?? recipe.diet}',
                     ),
                     Text(
                       '⏱️ ${recipe.cookingTime} ${loc.minutes} • '
-                      '${loc.difficultyLabel}：${_translateDifficulty(recipe.difficulty, loc)}',
+                          '${loc.difficultyLabel}：${_translateDifficulty(recipe.difficulty, loc)}',
                     ),
                     if (recipe.ingredients.isNotEmpty)
                       Text('📋 材料：${recipe.ingredients}', maxLines: 1, overflow: TextOverflow.ellipsis),

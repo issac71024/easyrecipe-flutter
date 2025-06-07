@@ -4,13 +4,18 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'models/recipe.dart';
 import 'screens/home_screen.dart';
 import 'l10n/app_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  print('>>> 準備初始化 Firebase');
+  await Firebase.initializeApp();
+  print('>>> Firebase 初始化完成');
   await Hive.initFlutter();
+  print('>>> Hive 初始化完成');
   Hive.registerAdapter(RecipeAdapter());
   await Hive.openBox<Recipe>('recipes');
-
+  print('>>> Hive box 開啟完成，準備 runApp');
   runApp(const EasyRecipeApp());
 }
 
