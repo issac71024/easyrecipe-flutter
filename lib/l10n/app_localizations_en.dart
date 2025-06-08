@@ -100,4 +100,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteConfirm => 'Delete';
+
+  @override
+  String get formEditRecipeTitle => 'Edit Recipe';
+
+  @override
+  String get formSaveSuccess => 'Updated successfully';
+
+  @override
+  String get cloudAutoRestore => 'Auto-restored from cloud!';
 }

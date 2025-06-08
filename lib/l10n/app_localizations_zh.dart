@@ -100,4 +100,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteConfirm => '刪除';
+
+  @override
+  String get formEditRecipeTitle => '編輯食譜';
+
+  @override
+  String get formSaveSuccess => '已成功更新';
+
+  @override
+  String get cloudAutoRestore => '已自動從雲端同步';
 }

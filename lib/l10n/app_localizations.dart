@@ -280,6 +280,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get deleteConfirm;
+
+  /// No description provided for @formEditRecipeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Recipe'**
+  String get formEditRecipeTitle;
+
+  /// No description provided for @formSaveSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated successfully'**
+  String get formSaveSuccess;
+
+  /// No description provided for @cloudAutoRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-restored from cloud!'**
+  String get cloudAutoRestore;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

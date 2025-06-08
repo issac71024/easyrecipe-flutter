@@ -7,7 +7,7 @@ import '../l10n/app_localizations.dart';
 
 class RecipeFormScreen extends StatefulWidget {
   final Recipe? recipe;
-  const RecipeFormScreen({Key? key, this.recipe}) : super(key: key);
+  const RecipeFormScreen({super.key, this.recipe});
 
   @override
   State<RecipeFormScreen> createState() => _RecipeFormScreenState();
@@ -40,8 +40,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     difficulty = r?.difficulty ?? 'easy';
     ingredients = r?.ingredients ?? '';
     steps = r?.steps ?? '';
-    imagePath = r?.imagePath;
-    if (imagePath != null) imageFile = File(imagePath!);
+    imagePath = r?.imagePath ?? '';
+    if (imagePath != null && imagePath!.isNotEmpty) {
+      imageFile = File(imagePath!);
+    }
   }
 
   Future<void> _pickImageFromGallery() async {
@@ -64,23 +66,11 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     }
   }
 
-  void _saveRecipe() async {
+  Future<void> _saveRecipe() async {
     if (_formKey.currentState!.validate()) {
       final box = Hive.box<Recipe>('recipes');
-      if (widget.recipe == null) {
-        final recipe = Recipe(
-          titleZh: titleZh,
-          titleEn: titleEn,
-          cuisine: cuisine,
-          diet: diet,
-          cookingTime: cookingTime,
-          difficulty: difficulty,
-          ingredients: ingredients,
-          steps: steps,
-          imagePath: imageFile?.path,
-        );
-        await box.add(recipe);
-      } else {
+      if (widget.recipe != null) {
+        
         widget.recipe!
           ..titleZh = titleZh
           ..titleEn = titleEn
@@ -90,27 +80,58 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
           ..difficulty = difficulty
           ..ingredients = ingredients
           ..steps = steps
-          ..imagePath = imageFile?.path;
+          ..imagePath = imagePath ?? '';
         await widget.recipe!.save();
+        Navigator.pop(context, true); 
+      } else {
+        
+        final recipe = Recipe(
+          titleZh: titleZh,
+          titleEn: titleEn,
+          cuisine: cuisine,
+          diet: diet,
+          cookingTime: cookingTime,
+          difficulty: difficulty,
+          ingredients: ingredients,
+          steps: steps,
+          imagePath: imagePath ?? '',
+        );
+        await box.add(recipe);
+        Navigator.pop(context);
       }
-      if (!mounted) return;
-      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-
     return Scaffold(
-      appBar: AppBar(title: Text(loc.formAddRecipeTitle)),
+      appBar: AppBar(
+        title: Text(widget.recipe == null ? loc.formAddRecipeTitle : loc.formEditRecipeTitle ?? '編輯食譜'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              if (imageFile != null) Image.file(imageFile!),
+              if (imageFile != null)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => Scaffold(
+                          appBar: AppBar(),
+                          backgroundColor: Colors.black,
+                          body: Center(
+                            child: Image.file(imageFile!, fit: BoxFit.contain),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Image.file(imageFile!, height: 180, fit: BoxFit.cover),
+                ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -127,16 +148,26 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                 ],
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: loc.formTitle + '（繁體中文）'),
+                decoration: InputDecoration(labelText: '${loc.formTitle}（繁體中文）'),
                 validator: (value) => value == null || value.isEmpty ? '請輸入標題' : null,
-                onChanged: (value) => titleZh = value,
                 initialValue: titleZh,
+                onChanged: (value) => titleZh = value,
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: loc.formTitle + ' (English)'),
+                decoration: InputDecoration(labelText: '${loc.formTitle} (English)'),
                 validator: (value) => value == null || value.isEmpty ? 'Please enter title' : null,
-                onChanged: (value) => titleEn = value,
                 initialValue: titleEn,
+                onChanged: (value) => titleEn = value,
+              ),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(labelText: loc.formCuisine),
+                value: cuisine,
+                items: [
+                  DropdownMenuItem(value: 'chinese', child: Text(loc.cuisineChinese)),
+                  DropdownMenuItem(value: 'japanese', child: Text(loc.cuisineJapanese)),
+                  DropdownMenuItem(value: 'western', child: Text(loc.cuisineWestern)),
+                ],
+                onChanged: (value) => setState(() => cuisine = value ?? 'chinese'),
               ),
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: loc.formDiet),
@@ -149,16 +180,6 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                 ],
                 onChanged: (value) => setState(() => diet = value ?? 'none'),
               ),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: loc.formCuisine),
-                value: cuisine,
-                items: [
-                  DropdownMenuItem(value: 'chinese', child: Text(loc.cuisineChinese)),
-                  DropdownMenuItem(value: 'japanese', child: Text(loc.cuisineJapanese)),
-                  DropdownMenuItem(value: 'western', child: Text(loc.cuisineWestern)),
-                ],
-                onChanged: (value) => setState(() => cuisine = value ?? 'chinese'),
-              ),
               TextFormField(
                 decoration: InputDecoration(labelText: loc.formCookingTime),
                 keyboardType: TextInputType.number,
@@ -167,8 +188,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                   if (int.tryParse(value) == null) return '請輸入有效數字';
                   return null;
                 },
+                initialValue: cookingTime == 0 ? '' : cookingTime.toString(),
                 onChanged: (value) => cookingTime = int.tryParse(value) ?? 0,
-                initialValue: cookingTime > 0 ? cookingTime.toString() : '',
               ),
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: loc.formDifficulty),
@@ -183,14 +204,14 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
               TextFormField(
                 decoration: InputDecoration(labelText: loc.formIngredients),
                 maxLines: 3,
-                onChanged: (value) => ingredients = value,
                 initialValue: ingredients,
+                onChanged: (value) => ingredients = value,
               ),
               TextFormField(
                 decoration: InputDecoration(labelText: loc.formSteps),
                 maxLines: 5,
-                onChanged: (value) => steps = value,
                 initialValue: steps,
+                onChanged: (value) => steps = value,
               ),
               const SizedBox(height: 20),
               ElevatedButton(

@@ -30,5 +30,8 @@
   "deleteDialogTitle": "刪除食譜",
   "deleteDialogContent": "你確定要刪除此食譜嗎？",
   "deleteCancel": "取消",
-  "deleteConfirm": "刪除"
+  "deleteConfirm": "刪除",
+  "formEditRecipeTitle": "編輯食譜",
+  "formSaveSuccess": "已成功更新",
+  "cloudAutoRestore": "已自動從雲端同步"
 }

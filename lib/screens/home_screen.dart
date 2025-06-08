@@ -7,6 +7,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../models/recipe.dart';
 import 'recipe_form.dart';
 import '../l10n/app_localizations.dart';
+import 'recipe_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final void Function(Locale) onLocaleChange;
@@ -20,32 +21,38 @@ class _HomeScreenState extends State<HomeScreen> {
   final recipeBox = Hive.box<Recipe>('recipes');
   String searchTerm = '';
   User? _user;
+  bool _isBackingUp = false;
 
   @override
   void initState() {
     super.initState();
     _user = FirebaseAuth.instance.currentUser;
+    _autoRestoreFromCloud();
   }
 
   Map<String, String> translateCuisine(AppLocalizations loc) => {
-    'chinese': loc.cuisineChinese,
-    'japanese': loc.cuisineJapanese,
-    'western': loc.cuisineWestern,
-  };
+        'chinese': loc.cuisineChinese,
+        'japanese': loc.cuisineJapanese,
+        'western': loc.cuisineWestern,
+      };
 
   Map<String, String> translateDiet(AppLocalizations loc) => {
-    'none': loc.dietNone,
-    'vegetarian': loc.dietVegetarian,
-    'high_protein': loc.dietHighProtein,
-    'low_carb': loc.dietLowCarb,
-  };
+        'none': loc.dietNone,
+        'vegetarian': loc.dietVegetarian,
+        'high_protein': loc.dietHighProtein,
+        'low_carb': loc.dietLowCarb,
+      };
 
   String _translateDifficulty(String code, AppLocalizations loc) {
     switch (code) {
-      case 'easy': return loc.difficultyEasy;
-      case 'medium': return loc.difficultyMedium;
-      case 'hard': return loc.difficultyHard;
-      default: return code;
+      case 'easy':
+        return loc.difficultyEasy;
+      case 'medium':
+        return loc.difficultyMedium;
+      case 'hard':
+        return loc.difficultyHard;
+      default:
+        return code;
     }
   }
 
@@ -62,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _user = userCredential.user;
     });
+    await _autoRestoreFromCloud();
   }
 
   Future<void> _signOut() async {
@@ -72,24 +80,49 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _backupToCloud() async {
-    if (_user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('請先登入 Google 帳號')),
+  Future<void> _autoRestoreFromCloud() async {
+    if (_user == null) return;
+    final uid = _user!.uid;
+    final firestore = FirebaseFirestore.instance;
+    final snapshot =
+        await firestore.collection('users').doc(uid).collection('recipes').get();
+    final box = Hive.box<Recipe>('recipes');
+    await box.clear();
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final recipe = Recipe(
+        titleZh: data['titleZh'] ?? '',
+        titleEn: data['titleEn'] ?? '',
+        cuisine: data['cuisine'] ?? '',
+        diet: data['diet'] ?? '',
+        cookingTime: data['cookingTime'] ?? 0,
+        difficulty: data['difficulty'] ?? '',
+        ingredients: data['ingredients'] ?? '',
+        steps: data['steps'] ?? '',
+        imagePath: data['imagePath'] ?? '',
       );
-      return;
+      await box.add(recipe);
     }
+    setState(() {});
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('已自動還原雲端食譜')),
+    );
+  }
+
+  Future<void> _autoBackupToCloud() async {
+    if (_user == null || _isBackingUp) return;
+    _isBackingUp = true;
     final uid = _user!.uid;
     final recipes = recipeBox.values.toList();
     final firestore = FirebaseFirestore.instance;
     final batch = firestore.batch();
-    final userCollection = firestore.collection('users').doc(uid).collection('recipes');
-    // 先清空雲端舊資料（保證同步）
+    final userCollection =
+        firestore.collection('users').doc(uid).collection('recipes');
     final oldDocs = await userCollection.get();
     for (var doc in oldDocs.docs) {
       batch.delete(doc.reference);
     }
-    // 再新增所有本地資料
     for (var recipe in recipes) {
       final doc = userCollection.doc(recipe.key.toString());
       batch.set(doc, {
@@ -105,6 +138,12 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
     await batch.commit();
+    _isBackingUp = false;
+    
+  }
+
+  Future<void> _backupToCloud() async {
+    await _autoBackupToCloud();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('備份完成（雲端 Firestore）')),
     );
@@ -119,7 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     final uid = _user!.uid;
     final firestore = FirebaseFirestore.instance;
-    final snapshot = await firestore.collection('users').doc(uid).collection('recipes').get();
+    final snapshot =
+        await firestore.collection('users').doc(uid).collection('recipes').get();
     final box = Hive.box<Recipe>('recipes');
     await box.clear();
     for (var doc in snapshot.docs) {
@@ -158,15 +198,35 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _signInWithGoogle,
             )
           else ...[
-            IconButton(
-              icon: const Icon(Icons.account_circle),
-              tooltip: _user?.displayName ?? '已登入',
-              onPressed: null,
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: '登出',
-              onPressed: _signOut,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_user?.photoURL != null)
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(_user!.photoURL!),
+                    radius: 16,
+                  )
+                else
+                  const CircleAvatar(child: Icon(Icons.account_circle)),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_user!.displayName ?? '',
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.bold)),
+                    Text(_user!.email ?? '',
+                        style: const TextStyle(
+                            fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  tooltip: '登出',
+                  onPressed: _signOut,
+                ),
+              ],
             ),
           ],
           IconButton(
@@ -218,12 +278,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body: ValueListenableBuilder(
         valueListenable: recipeBox.listenable(),
         builder: (context, Box<Recipe> box, _) {
+          _autoBackupToCloud();
+
           final isZh = Localizations.localeOf(context).languageCode == 'zh';
           final searchLower = searchTerm.toLowerCase();
           final filtered = box.values.where((recipe) {
             final title = isZh ? recipe.titleZh : recipe.titleEn;
-            return
-                title.toLowerCase().contains(searchLower) ||
+            return title.toLowerCase().contains(searchLower) ||
                 recipe.ingredients.toLowerCase().contains(searchLower) ||
                 recipe.cookingTime.toString().contains(searchLower);
           }).toList();
@@ -237,7 +298,8 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (context, index) {
               final recipe = filtered[index];
               return ListTile(
-                leading: (recipe.imagePath != null && recipe.imagePath!.isNotEmpty)
+                leading: (recipe.imagePath != null &&
+                        recipe.imagePath!.isNotEmpty)
                     ? Image.file(
                         File(recipe.imagePath!),
                         width: 60,
@@ -251,21 +313,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       '${translateCuisine(loc)[recipe.cuisine] ?? recipe.cuisine} • '
-                          '${translateDiet(loc)[recipe.diet] ?? recipe.diet}',
+                      '${translateDiet(loc)[recipe.diet] ?? recipe.diet}',
                     ),
                     Text(
                       '⏱️ ${recipe.cookingTime} ${loc.minutes} • '
-                          '${loc.difficultyLabel}：${_translateDifficulty(recipe.difficulty, loc)}',
+                      '${loc.difficultyLabel}：${_translateDifficulty(recipe.difficulty, loc)}',
                     ),
                     if (recipe.ingredients.isNotEmpty)
-                      Text('📋 材料：${recipe.ingredients}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text('📋 材料：${recipe.ingredients}',
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => RecipeFormScreen(recipe: recipe),
+                      builder: (_) => RecipeDetailScreen(
+                        recipe: recipe,
+                        isZh: isZh,
+                      ),
                     ),
                   );
                 },
