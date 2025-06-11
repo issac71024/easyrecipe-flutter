@@ -33,5 +33,15 @@
   "deleteConfirm": "Delete",
   "formEditRecipeTitle": "Edit Recipe",
   "formSaveSuccess": "Updated successfully",
-  "cloudAutoRestore": "Auto-restored from cloud!"
+  "cloudAutoRestore": "Auto-restored from cloud!",
+  "dietNone": "None",
+  "dietVegetarian": "Vegetarian",
+  "dietVegan": "Vegan",
+  "dietHighProtein": "High Protein",
+  "dietLowCarb": "Low Carb",
+  "dietKeto": "Keto",
+  "dietPaleo": "Paleo",
+  "dietOther": "Other / 其他",
+  "dietGlutenFree": "Gluten Free",
+  "dietCustom": "Custom"
 }

@@ -298,6 +298,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auto-restored from cloud!'**
   String get cloudAutoRestore;
+
+  /// No description provided for @dietVegan.
+  ///
+  /// In en, this message translates to:
+  /// **'Vegan'**
+  String get dietVegan;
+
+  /// No description provided for @dietKeto.
+  ///
+  /// In en, this message translates to:
+  /// **'Keto'**
+  String get dietKeto;
+
+  /// No description provided for @dietPaleo.
+  ///
+  /// In en, this message translates to:
+  /// **'Paleo'**
+  String get dietPaleo;
+
+  /// No description provided for @dietOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other / 其他'**
+  String get dietOther;
+
+  /// No description provided for @dietGlutenFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Gluten Free'**
+  String get dietGlutenFree;
+
+  /// No description provided for @dietCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get dietCustom;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

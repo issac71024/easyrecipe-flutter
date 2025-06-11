@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -41,6 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'vegetarian': loc.dietVegetarian,
         'high_protein': loc.dietHighProtein,
         'low_carb': loc.dietLowCarb,
+        'vegan': loc.dietVegan,
+        'gluten_free': loc.dietGlutenFree,
+        'custom': loc.dietCustom,
       };
 
   String _translateDifficulty(String code, AppLocalizations loc) {
@@ -104,7 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
       await box.add(recipe);
     }
     setState(() {});
-    
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已自動還原雲端食譜')),
     );
@@ -139,7 +142,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     await batch.commit();
     _isBackingUp = false;
-    
   }
 
   Future<void> _backupToCloud() async {
@@ -186,194 +188,370 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final themeColor = const Color(0xFFB17250); // PANTONE 17-1230 Mocha Mousse
+    final themeGradient = LinearGradient(
+      colors: [themeColor, Colors.brown.shade200],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(loc.appTitle),
-        actions: [
-          if (_user == null)
+    return Container(
+      decoration: BoxDecoration(
+        gradient: themeGradient,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Image.asset(
+              Localizations.localeOf(context).languageCode == 'zh'
+                  ? 'assets/logo_zh.png'
+                  : 'assets/logo_en.png',
+              fit: BoxFit.contain,
+              height: 34,
+            ),
+          ),
+          title: Text(
+            loc.appTitle,
+            style: GoogleFonts.nunito(
+                fontWeight: FontWeight.w800, fontSize: 24, color: Colors.white),
+          ),
+          actions: [
+            if (_user == null)
+              IconButton(
+                icon: const Icon(Icons.login),
+                tooltip: 'Google 登入',
+                onPressed: _signInWithGoogle,
+              )
+            else ...[
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_user?.photoURL != null)
+                    CircleAvatar(
+                      backgroundImage: NetworkImage(_user!.photoURL!),
+                      radius: 18,
+                    )
+                  else
+                    const CircleAvatar(child: Icon(Icons.account_circle)),
+                  const SizedBox(width: 8),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_user!.displayName ?? '',
+                          style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600)),
+                      Text(_user!.email ?? '',
+                          style: GoogleFonts.inter(
+                              fontSize: 12, color: Colors.white70)),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white70),
+                    tooltip: '登出',
+                    onPressed: _signOut,
+                  ),
+                ],
+              ),
+            ],
             IconButton(
-              icon: const Icon(Icons.login),
-              tooltip: 'Google 登入',
-              onPressed: _signInWithGoogle,
-            )
-          else ...[
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_user?.photoURL != null)
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(_user!.photoURL!),
-                    radius: 16,
-                  )
-                else
-                  const CircleAvatar(child: Icon(Icons.account_circle)),
-                const SizedBox(width: 8),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_user!.displayName ?? '',
-                        style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.bold)),
-                    Text(_user!.email ?? '',
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.grey)),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  tooltip: '登出',
-                  onPressed: _signOut,
-                ),
+              icon: const Icon(Icons.cloud_upload),
+              tooltip: '雲端備份',
+              onPressed: _backupToCloud,
+            ),
+            IconButton(
+              icon: const Icon(Icons.cloud_download),
+              tooltip: '從雲端還原',
+              onPressed: _restoreFromCloud,
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'en') {
+                  widget.onLocaleChange(const Locale('en'));
+                } else if (value == 'zh') {
+                  widget.onLocaleChange(const Locale('zh'));
+                }
+              },
+              icon: const Icon(Icons.language),
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'en', child: Text('English')),
+                const PopupMenuItem(value: 'zh', child: Text('繁體中文')),
               ],
             ),
           ],
-          IconButton(
-            icon: const Icon(Icons.cloud_upload),
-            tooltip: '雲端備份',
-            onPressed: _backupToCloud,
-          ),
-          IconButton(
-            icon: const Icon(Icons.cloud_download),
-            tooltip: '從雲端還原',
-            onPressed: _restoreFromCloud,
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'en') {
-                widget.onLocaleChange(const Locale('en'));
-              } else if (value == 'zh') {
-                widget.onLocaleChange(const Locale('zh'));
-              }
-            },
-            icon: const Icon(Icons.language),
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'en', child: Text('English')),
-              const PopupMenuItem(value: 'zh', child: Text('繁體中文')),
-            ],
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: loc.searchHint,
-                prefixIcon: const Icon(Icons.search),
-                border: const OutlineInputBorder(),
-                filled: true,
-                fillColor: Colors.white,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(60),
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: loc.searchHint,
+                  hintStyle: GoogleFonts.nunito(color: Colors.teal.shade800),
+                  prefixIcon: const Icon(Icons.search, color: Colors.teal),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                ),
+                style: GoogleFonts.nunito(fontSize: 16),
+                onChanged: (value) {
+                  setState(() {
+                    searchTerm = value;
+                  });
+                },
               ),
-              onChanged: (value) {
-                setState(() {
-                  searchTerm = value;
-                });
-              },
             ),
           ),
         ),
-      ),
-      body: ValueListenableBuilder(
-        valueListenable: recipeBox.listenable(),
-        builder: (context, Box<Recipe> box, _) {
-          _autoBackupToCloud();
+        body: ValueListenableBuilder(
+          valueListenable: recipeBox.listenable(),
+          builder: (context, Box<Recipe> box, _) {
+            _autoBackupToCloud();
 
-          final isZh = Localizations.localeOf(context).languageCode == 'zh';
-          final searchLower = searchTerm.toLowerCase();
-          final filtered = box.values.where((recipe) {
-            final title = isZh ? recipe.titleZh : recipe.titleEn;
-            return title.toLowerCase().contains(searchLower) ||
-                recipe.ingredients.toLowerCase().contains(searchLower) ||
-                recipe.cookingTime.toString().contains(searchLower);
-          }).toList();
+            final isZh = Localizations.localeOf(context).languageCode == 'zh';
+            final searchLower = searchTerm.toLowerCase();
+            final filtered = box.values.where((recipe) {
+              // --- only show current language ---
+              if (isZh && recipe.titleZh.trim().isEmpty) return false;
+              if (!isZh && recipe.titleEn.trim().isEmpty) return false;
 
-          if (filtered.isEmpty) {
-            return Center(child: Text(loc.noRecipe));
-          }
+              final title = isZh ? recipe.titleZh : recipe.titleEn;
+              return title.toLowerCase().contains(searchLower) ||
+                  recipe.ingredients.toLowerCase().contains(searchLower) ||
+                  recipe.cookingTime.toString().contains(searchLower);
+            }).toList();
 
-          return ListView.builder(
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              final recipe = filtered[index];
-              return ListTile(
-                leading: (recipe.imagePath != null &&
-                        recipe.imagePath!.isNotEmpty)
-                    ? Image.file(
-                        File(recipe.imagePath!),
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                      )
-                    : const Icon(Icons.image_not_supported, size: 40),
-                title: Text(isZh ? recipe.titleZh : recipe.titleEn),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            if (filtered.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(Icons.emoji_food_beverage,
+                        color: Colors.teal.shade100, size: 88),
+                    const SizedBox(height: 18),
                     Text(
-                      '${translateCuisine(loc)[recipe.cuisine] ?? recipe.cuisine} • '
-                      '${translateDiet(loc)[recipe.diet] ?? recipe.diet}',
+                      loc.noRecipe,
+                      style: GoogleFonts.nunito(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
                     ),
-                    Text(
-                      '⏱️ ${recipe.cookingTime} ${loc.minutes} • '
-                      '${loc.difficultyLabel}：${_translateDifficulty(recipe.difficulty, loc)}',
-                    ),
-                    if (recipe.ingredients.isNotEmpty)
-                      Text('📋 材料：${recipe.ingredients}',
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RecipeDetailScreen(
-                        recipe: recipe,
-                        isZh: isZh,
-                      ),
-                    ),
-                  );
-                },
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(loc.deleteDialogTitle),
-                        content: Text(loc.deleteDialogContent),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: Text(loc.deleteCancel),
+              );
+            }
+
+            return ListView.builder(
+              itemCount: filtered.length,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+              itemBuilder: (context, index) {
+                final recipe = filtered[index];
+                return Card(
+                  elevation: 5,
+                  margin:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(22),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RecipeDetailScreen(
+                            recipe: recipe,
+                            isZh: isZh,
                           ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: Text(loc.deleteConfirm),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          (recipe.imagePath != null &&
+                                  recipe.imagePath!.isNotEmpty)
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    File(recipe.imagePath!),
+                                    width: 74,
+                                    height: 74,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : Container(
+                                  width: 74,
+                                  height: 74,
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.image_outlined,
+                                      color: Colors.teal, size: 36),
+                                ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isZh
+                                      ? recipe.titleZh
+                                      : recipe.titleEn,
+                                  style: GoogleFonts.nunito(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Icon(Icons.restaurant_menu,
+                                        color: Colors.teal.shade200, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${translateCuisine(loc)[recipe.cuisine] ?? recipe.cuisine} • ${translateDiet(loc)[recipe.diet] ?? recipe.diet}',
+                                      style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          color: Colors.teal.shade800),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Container(
+                                      margin: const EdgeInsets.only(
+                                          right: 8, top: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: recipe.difficulty == 'easy'
+                                              ? [
+                                                  Colors.green.shade200,
+                                                  Colors.green.shade400
+                                                ]
+                                              : recipe.difficulty == 'medium'
+                                                  ? [
+                                                      Colors.orange.shade200,
+                                                      Colors.orange
+                                                    ]
+                                                  : [
+                                                      Colors.red.shade200,
+                                                      Colors.red
+                                                    ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        _translateDifficulty(
+                                            recipe.difficulty, loc),
+                                        style: GoogleFonts.nunito(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(Icons.schedule,
+                                        size: 15,
+                                        color: Colors.grey.shade500),
+                                    Text(
+                                      ' ${recipe.cookingTime} ${loc.minutes}',
+                                      style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          color: Colors.grey[700]),
+                                    ),
+                                  ],
+                                ),
+                                if (recipe.ingredients.isNotEmpty)
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(top: 3.0),
+                                    child: Text(
+                                      '📋 ${recipe.ingredients}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          color: Colors.grey[600]),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.redAccent),
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: Text(loc.deleteDialogTitle),
+                                  content: Text(loc.deleteDialogContent),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: Text(loc.deleteCancel),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: Text(loc.deleteConfirm),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                await recipe.delete();
+                                setState(() {});
+                              }
+                            },
                           ),
                         ],
                       ),
-                    );
-                    if (confirm == true) {
-                      await recipe.delete();
-                      setState(() {});
-                    }
-                  },
-                ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+        floatingActionButton: Container(
+          margin: const EdgeInsets.only(bottom: 10, right: 6),
+          child: FloatingActionButton.extended(
+            elevation: 5,
+            backgroundColor: themeColor,
+            icon: const Icon(Icons.add, color: Colors.white),
+            label: Text(
+              loc.addRecipe,
+              style: GoogleFonts.nunito(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 16),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
               );
             },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
-          );
-        },
-        child: const Icon(Icons.add),
+          ),
+        ),
       ),
     );
   }

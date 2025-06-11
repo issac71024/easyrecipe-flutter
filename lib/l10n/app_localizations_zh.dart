@@ -57,7 +57,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dietHighProtein => '高蛋白';
 
   @override
-  String get dietLowCarb => '低醣';
+  String get dietLowCarb => '低碳';
 
   @override
   String get minutes => '分鐘';
@@ -109,4 +109,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cloudAutoRestore => '已自動從雲端同步';
+
+  @override
+  String get dietVegan => '全素';
+
+  @override
+  String get dietKeto => '生酮';
+
+  @override
+  String get dietPaleo => '原始人飲食';
+
+  @override
+  String get dietOther => '其他 / Other';
+
+  @override
+  String get dietGlutenFree => '無麩質';
+
+  @override
+  String get dietCustom => '自訂';
 }

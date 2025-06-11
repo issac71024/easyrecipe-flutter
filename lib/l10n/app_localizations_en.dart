@@ -109,4 +109,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cloudAutoRestore => 'Auto-restored from cloud!';
+
+  @override
+  String get dietVegan => 'Vegan';
+
+  @override
+  String get dietKeto => 'Keto';
+
+  @override
+  String get dietPaleo => 'Paleo';
+
+  @override
+  String get dietOther => 'Other / 其他';
+
+  @override
+  String get dietGlutenFree => 'Gluten Free';
+
+  @override
+  String get dietCustom => 'Custom';
 }

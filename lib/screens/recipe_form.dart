@@ -19,6 +19,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   late String titleEn;
   late String cuisine;
   late String diet;
+  late String customDiet; // for "other"
   late int cookingTime;
   late String difficulty;
   late String ingredients;
@@ -27,6 +28,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   String? imagePath;
 
   final picker = ImagePicker();
+  final _customDietController = TextEditingController();
 
   @override
   void initState() {
@@ -36,6 +38,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     titleEn = r?.titleEn ?? '';
     cuisine = r?.cuisine ?? 'chinese';
     diet = r?.diet ?? 'none';
+    customDiet = r?.diet != null && _dietOptions.contains(r!.diet) ? '' : r?.diet ?? '';
+    _customDietController.text = customDiet;
     cookingTime = r?.cookingTime ?? 0;
     difficulty = r?.difficulty ?? 'easy';
     ingredients = r?.ingredients ?? '';
@@ -45,6 +49,28 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
       imageFile = File(imagePath!);
     }
   }
+
+  static const _dietOptions = [
+    'none',
+    'vegetarian',
+    'vegan',
+    'high_protein',
+    'low_carb',
+    'keto',
+    'paleo',
+    'other',
+  ];
+
+  Map<String, String> dietLabels(AppLocalizations loc) => {
+    'none': loc.dietNone,
+    'vegetarian': loc.dietVegetarian,
+    'vegan': loc.dietVegan,
+    'high_protein': loc.dietHighProtein,
+    'low_carb': loc.dietLowCarb,
+    'keto': loc.dietKeto,
+    'paleo': loc.dietPaleo,
+    'other': loc.dietOther,
+  };
 
   Future<void> _pickImageFromGallery() async {
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -69,27 +95,32 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   Future<void> _saveRecipe() async {
     if (_formKey.currentState!.validate()) {
       final box = Hive.box<Recipe>('recipes');
+      String saveDiet;
+      if (diet == 'other') {
+        saveDiet = _customDietController.text.trim();
+      } else {
+        saveDiet = diet;
+      }
+
       if (widget.recipe != null) {
-        
         widget.recipe!
           ..titleZh = titleZh
           ..titleEn = titleEn
           ..cuisine = cuisine
-          ..diet = diet
+          ..diet = saveDiet
           ..cookingTime = cookingTime
           ..difficulty = difficulty
           ..ingredients = ingredients
           ..steps = steps
           ..imagePath = imagePath ?? '';
         await widget.recipe!.save();
-        Navigator.pop(context, true); 
+        Navigator.pop(context, true);
       } else {
-        
         final recipe = Recipe(
           titleZh: titleZh,
           titleEn: titleEn,
           cuisine: cuisine,
-          diet: diet,
+          diet: saveDiet,
           cookingTime: cookingTime,
           difficulty: difficulty,
           ingredients: ingredients,
@@ -103,14 +134,25 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   }
 
   @override
+  void dispose() {
+    _customDietController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final themeColor = const Color(0xFFB17250);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.recipe == null ? loc.formAddRecipeTitle : loc.formEditRecipeTitle ?? '編輯食譜'),
+        title: Text(widget.recipe == null
+            ? loc.formAddRecipeTitle
+            : loc.formEditRecipeTitle ?? '編輯食譜'),
+        backgroundColor: themeColor,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(18.0),
         child: Form(
           key: _formKey,
           child: ListView(
@@ -136,28 +178,41 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: themeColor),
                     onPressed: _pickImageFromGallery,
                     icon: const Icon(Icons.image),
                     label: Text(loc.formChooseImage),
                   ),
                   ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: themeColor),
                     onPressed: _pickImageFromCamera,
                     icon: const Icon(Icons.camera_alt),
                     label: Text(loc.formTakePhoto),
                   ),
                 ],
               ),
+              // CH OR ENG
               TextFormField(
                 decoration: InputDecoration(labelText: '${loc.formTitle}（繁體中文）'),
-                validator: (value) => value == null || value.isEmpty ? '請輸入標題' : null,
                 initialValue: titleZh,
                 onChanged: (value) => titleZh = value,
+                validator: (value) {
+                  if ((value == null || value.isEmpty) && (titleEn.isEmpty)) {
+                    return '請至少輸入一個標題';
+                  }
+                  return null;
+                },
               ),
               TextFormField(
                 decoration: InputDecoration(labelText: '${loc.formTitle} (English)'),
-                validator: (value) => value == null || value.isEmpty ? 'Please enter title' : null,
                 initialValue: titleEn,
                 onChanged: (value) => titleEn = value,
+                validator: (value) {
+                  if ((value == null || value.isEmpty) && (titleZh.isEmpty)) {
+                    return 'Please enter at least one title';
+                  }
+                  return null;
+                },
               ),
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: loc.formCuisine),
@@ -171,15 +226,26 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
               ),
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: loc.formDiet),
-                value: diet,
-                items: [
-                  DropdownMenuItem(value: 'none', child: Text(loc.dietNone)),
-                  DropdownMenuItem(value: 'vegetarian', child: Text(loc.dietVegetarian)),
-                  DropdownMenuItem(value: 'high_protein', child: Text(loc.dietHighProtein)),
-                  DropdownMenuItem(value: 'low_carb', child: Text(loc.dietLowCarb)),
-                ],
+                value: _dietOptions.contains(diet) ? diet : 'other',
+                items: _dietOptions.map((value) {
+                  return DropdownMenuItem(
+                    value: value,
+                    child: Text(dietLabels(loc)[value]!),
+                  );
+                }).toList(),
                 onChanged: (value) => setState(() => diet = value ?? 'none'),
               ),
+              if (diet == 'other')
+                TextFormField(
+                  controller: _customDietController,
+                  decoration: const InputDecoration(labelText: '自訂飲食分類 (Diet)'),
+                  validator: (value) {
+                    if (diet == 'other' && (value == null || value.isEmpty)) {
+                      return '請輸入飲食分類';
+                    }
+                    return null;
+                  },
+                ),
               TextFormField(
                 decoration: InputDecoration(labelText: loc.formCookingTime),
                 keyboardType: TextInputType.number,
@@ -215,6 +281,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: themeColor),
                 onPressed: _saveRecipe,
                 child: Text(loc.formSave),
               ),

@@ -9,7 +9,7 @@ environment:
 
 dependencies:
   flutter:
-    sdk: flutter
+    sdk: flutter  
   cupertino_icons: ^1.0.2
   hive: ^2.2.3
   hive_flutter: ^1.1.0
@@ -22,6 +22,8 @@ dependencies:
   google_sign_in: ^6.3.0
   firebase_core: ^3.13.1
   cloud_firestore: ^5.6.8 
+  google_fonts: ^6.2.1
+  flutter_native_splash: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -31,4 +33,13 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/logo_en.png
+    - assets/logo_zh.png
   generate: true
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/logo_en.png
+  android: true
+  ios: false

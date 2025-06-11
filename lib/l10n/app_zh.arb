@@ -33,5 +33,15 @@
   "deleteConfirm": "刪除",
   "formEditRecipeTitle": "編輯食譜",
   "formSaveSuccess": "已成功更新",
-  "cloudAutoRestore": "已自動從雲端同步"
+  "cloudAutoRestore": "已自動從雲端同步",
+  "dietNone": "無",
+  "dietVegetarian": "素食",
+  "dietVegan": "全素",
+  "dietHighProtein": "高蛋白",
+  "dietLowCarb": "低碳",
+  "dietKeto": "生酮",
+  "dietPaleo": "原始人飲食",
+  "dietOther": "其他 / Other",
+  "dietGlutenFree": "無麩質",
+  "dietCustom": "自訂"
 }
