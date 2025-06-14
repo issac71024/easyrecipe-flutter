@@ -334,6 +334,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Custom'**
   String get dietCustom;
+
+  /// No description provided for @onboardTitle1.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to EasyRecipe'**
+  String get onboardTitle1;
+
+  /// No description provided for @onboardDesc1.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your recipes, photos, and cloud backup easily.'**
+  String get onboardDesc1;
+
+  /// No description provided for @onboardTitle2.
+  ///
+  /// In en, this message translates to:
+  /// **'Add New Recipe'**
+  String get onboardTitle2;
+
+  /// No description provided for @onboardDesc2.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the + button to quickly add your favorite recipe.'**
+  String get onboardDesc2;
+
+  /// No description provided for @onboardTitle3.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Login & Sync'**
+  String get onboardTitle3;
+
+  /// No description provided for @onboardDesc3.
+  ///
+  /// In en, this message translates to:
+  /// **'Login with Google for secure cloud sync and backup.'**
+  String get onboardDesc3;
+
+  /// No description provided for @onboardStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get onboardStart;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @about.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get about;
+
+  /// No description provided for @aboutDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Local storage (Hive) & Cloud sync (Firestore). Google sign-in, multi-language.'**
+  String get aboutDesc;
+
+  /// No description provided for @author.
+  ///
+  /// In en, this message translates to:
+  /// **'Author'**
+  String get author;
+
+  /// No description provided for @version.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get version;
+
+  /// No description provided for @theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
+  /// No description provided for @dark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get dark;
+
+  /// No description provided for @light.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get light;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

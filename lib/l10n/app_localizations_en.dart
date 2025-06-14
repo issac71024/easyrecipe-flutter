@@ -127,4 +127,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietCustom => 'Custom';
+
+  @override
+  String get onboardTitle1 => 'Welcome to EasyRecipe';
+
+  @override
+  String get onboardDesc1 => 'Manage your recipes, photos, and cloud backup easily.';
+
+  @override
+  String get onboardTitle2 => 'Add New Recipe';
+
+  @override
+  String get onboardDesc2 => 'Tap the + button to quickly add your favorite recipe.';
+
+  @override
+  String get onboardTitle3 => 'Google Login & Sync';
+
+  @override
+  String get onboardDesc3 => 'Login with Google for secure cloud sync and backup.';
+
+  @override
+  String get onboardStart => 'Start';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get about => 'About';
+
+  @override
+  String get aboutDesc => 'Local storage (Hive) & Cloud sync (Firestore). Google sign-in, multi-language.';
+
+  @override
+  String get author => 'Author';
+
+  @override
+  String get version => 'Version';
+
+  @override
+  String get theme => 'Theme';
+
+  @override
+  String get dark => 'Dark';
+
+  @override
+  String get light => 'Light';
 }

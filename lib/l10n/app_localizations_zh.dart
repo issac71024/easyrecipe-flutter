@@ -127,4 +127,49 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dietCustom => '自訂';
+
+  @override
+  String get onboardTitle1 => '歡迎使用簡易食譜';
+
+  @override
+  String get onboardDesc1 => '輕鬆管理食譜、照片與雲端備份。';
+
+  @override
+  String get onboardTitle2 => '新增料理';
+
+  @override
+  String get onboardDesc2 => '點選右下 + 按鈕即可快速新增您的最愛食譜。';
+
+  @override
+  String get onboardTitle3 => 'Google 登入與同步';
+
+  @override
+  String get onboardDesc3 => '使用 Google 登入，保證資料安全同步雲端。';
+
+  @override
+  String get onboardStart => '開始使用';
+
+  @override
+  String get next => '下一步';
+
+  @override
+  String get about => '關於';
+
+  @override
+  String get aboutDesc => '簡易食譜 EasyRecipe 幫你管理和備份個人食譜，支援多語、雲端同步、Google 登入，以及拍照上傳，簡單易用。';
+
+  @override
+  String get author => '作者';
+
+  @override
+  String get version => '版本';
+
+  @override
+  String get theme => '主題';
+
+  @override
+  String get dark => '深色';
+
+  @override
+  String get light => '淺色';
 }

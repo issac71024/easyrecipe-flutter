@@ -43,5 +43,20 @@
   "dietPaleo": "Paleo",
   "dietOther": "Other / 其他",
   "dietGlutenFree": "Gluten Free",
-  "dietCustom": "Custom"
+  "dietCustom": "Custom",
+  "onboardTitle1": "Welcome to EasyRecipe",
+  "onboardDesc1": "Manage your recipes, photos, and cloud backup easily.",
+  "onboardTitle2": "Add New Recipe",
+  "onboardDesc2": "Tap the + button to quickly add your favorite recipe.",
+  "onboardTitle3": "Google Login & Sync",
+  "onboardDesc3": "Login with Google for secure cloud sync and backup.",
+  "onboardStart": "Start",
+  "next": "Next",
+  "about": "About",
+  "aboutDesc": "Local storage (Hive) & Cloud sync (Firestore). Google sign-in, multi-language.",
+  "author": "Author",
+  "version": "Version",
+  "theme": "Theme",
+  "dark": "Dark",
+  "light": "Light"
 }

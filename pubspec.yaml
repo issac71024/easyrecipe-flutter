@@ -24,6 +24,8 @@ dependencies:
   cloud_firestore: ^5.6.8 
   google_fonts: ^6.2.1
   flutter_native_splash: ^2.4.0
+  shared_preferences: ^2.2.2
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:
@@ -36,6 +38,8 @@ flutter:
   assets:
     - assets/logo_en.png
     - assets/logo_zh.png
+    - assets/onboard_add.png
+    - assets/onboard_cloud.png
   generate: true
 
 flutter_native_splash:

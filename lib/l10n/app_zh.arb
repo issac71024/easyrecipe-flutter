@@ -43,5 +43,21 @@
   "dietPaleo": "原始人飲食",
   "dietOther": "其他 / Other",
   "dietGlutenFree": "無麩質",
-  "dietCustom": "自訂"
+  "dietCustom": "自訂",
+  "onboardTitle1": "歡迎使用簡易食譜",
+  "onboardDesc1": "輕鬆管理食譜、照片與雲端備份。",
+  "onboardTitle2": "新增料理",
+  "onboardDesc2": "點選右下 + 按鈕即可快速新增您的最愛食譜。",
+  "onboardTitle3": "Google 登入與同步",
+  "onboardDesc3": "使用 Google 登入，保證資料安全同步雲端。",
+  "onboardStart": "開始使用",
+  "next": "下一步",
+  "about": "關於",
+  "aboutDesc": "簡易食譜 EasyRecipe 幫你管理和備份個人食譜，支援多語、雲端同步、Google 登入，以及拍照上傳，簡單易用。",
+  "author": "作者",
+  "version": "版本",
+  "theme": "主題",
+  "dark": "深色",
+  "light": "淺色",
+  "settings": "設定"
 }

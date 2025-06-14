@@ -12,7 +12,20 @@
           "package_name": "com.example.easyrecipe"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "513584448452-fk2u6b54ejnirf82ot6u7tlf5gg04hq4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.easyrecipe",
+            "certificate_hash": "eebd19193834f6ef96487e4503ffb0b7eb3ddbc2"
+          }
+        },
+        {
+          "client_id": "513584448452-75iqcojgpm7jh54r0p3t38vn331kh96r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAX3xmEZiTsS2Pn_HmxJ5kNU3lypxIYcRE"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "513584448452-75iqcojgpm7jh54r0p3t38vn331kh96r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
