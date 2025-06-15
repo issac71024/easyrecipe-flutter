@@ -33,6 +33,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     'vegetarian': loc.dietVegetarian,
     'high_protein': loc.dietHighProtein,
     'low_carb': loc.dietLowCarb,
+    'vegan': loc.dietVegan,
+    'gluten_free': loc.dietGlutenFree,
+    'custom': loc.dietCustom,
   };
 
   String _translateDifficulty(String code, AppLocalizations loc) {
@@ -42,6 +45,51 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       case 'hard': return loc.difficultyHard;
       default: return code;
     }
+  }
+
+  // support assets、local file and no photo 
+  Widget _buildRecipeImage(String? path) {
+    if (path == null || path.isEmpty) {
+      return Container(
+        height: 200,
+        color: Colors.teal.shade50,
+        child: const Icon(Icons.image_outlined, color: Colors.teal, size: 72),
+      );
+    }
+    if (path.startsWith('assets/')) {
+      return GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => Scaffold(
+                appBar: AppBar(backgroundColor: Colors.black),
+                backgroundColor: Colors.black,
+                body: Center(
+                  child: Image.asset(path, fit: BoxFit.contain),
+                ),
+              ),
+            ),
+          );
+        },
+        child: Image.asset(path, height: 200, fit: BoxFit.cover),
+      );
+    }
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => Scaffold(
+              appBar: AppBar(backgroundColor: Colors.black),
+              backgroundColor: Colors.black,
+              body: Center(
+                child: Image.file(File(path), fit: BoxFit.contain),
+              ),
+            ),
+          ),
+        );
+      },
+      child: Image.file(File(path), height: 200, fit: BoxFit.cover),
+    );
   }
 
   @override
@@ -101,23 +149,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (_recipe.imagePath != null && _recipe.imagePath!.isNotEmpty)
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => Scaffold(
-                      appBar: AppBar(),
-                      backgroundColor: Colors.black,
-                      body: Center(
-                        child: Image.file(File(_recipe.imagePath!), fit: BoxFit.contain),
-                      ),
-                    ),
-                  ),
-                );
-              },
-              child: Image.file(File(_recipe.imagePath!), height: 200, fit: BoxFit.cover),
-            ),
+          _buildRecipeImage(_recipe.imagePath),
           const SizedBox(height: 16),
           Text('${loc.formCuisine}：${translateCuisine(loc)[_recipe.cuisine] ?? _recipe.cuisine}'),
           Text('${loc.formDiet}：${translateDiet(loc)[_recipe.diet] ?? _recipe.diet}'),

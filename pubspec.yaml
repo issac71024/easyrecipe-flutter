@@ -40,6 +40,17 @@ flutter:
     - assets/logo_zh.png
     - assets/onboard_add.png
     - assets/onboard_cloud.png
+    - assets/sample1.jpg
+    - assets/sample2.jpg
+    - assets/sample3.jpg
+    - assets/sample4.jpg
+    - assets/sample5.jpg
+    - assets/sample6.jpg
+    - assets/sample7.jpg
+    - assets/sample8.jpg
+    - assets/sample9.jpg
+    - assets/sample10.jpg
+
   generate: true
 
 flutter_native_splash:

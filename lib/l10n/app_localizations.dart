@@ -386,7 +386,7 @@ abstract class AppLocalizations {
   /// No description provided for @about.
   ///
   /// In en, this message translates to:
-  /// **'About'**
+  /// **'About/Settings'**
   String get about;
 
   /// No description provided for @aboutDesc.
@@ -424,6 +424,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Light'**
   String get light;
+
+  /// No description provided for @aboutDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipes are securely saved locally with Hive encryption. When you sign in with Google, your data is synced to Firestore cloud. This app is for academic use only.'**
+  String get aboutDetail;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// No description provided for @logout.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout'**
+  String get logout;
+
+  /// No description provided for @darkMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Mode'**
+  String get darkMode;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

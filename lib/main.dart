@@ -8,14 +8,10 @@ import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  print('>>> 準備初始化 Firebase');
   await Firebase.initializeApp();
-  print('>>> Firebase 初始化完成');
   await Hive.initFlutter();
-  print('>>> Hive 初始化完成');
   Hive.registerAdapter(RecipeAdapter());
   await Hive.openBox<Recipe>('recipes');
-  print('>>> Hive box 開啟完成，準備 runApp');
   runApp(const EasyRecipeApp());
 }
 
@@ -27,7 +23,8 @@ class EasyRecipeApp extends StatefulWidget {
 }
 
 class _EasyRecipeAppState extends State<EasyRecipeApp> {
-  Locale _locale = const Locale('zh'); // 預設為繁體中文
+  Locale _locale = const Locale('zh'); 
+  final ValueNotifier<bool> isDarkMode = ValueNotifier(false);
 
   void _changeLanguage(Locale newLocale) {
     setState(() {
@@ -36,22 +33,49 @@ class _EasyRecipeAppState extends State<EasyRecipeApp> {
   }
 
   @override
+  void dispose() {
+    isDarkMode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      locale: _locale,
-      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('zh'),
-      ],
-      theme: ThemeData(primarySwatch: Colors.teal),
-      home: HomeScreen(onLocaleChange: _changeLanguage),
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkMode,
+      builder: (context, dark, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          locale: _locale,
+          onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en'),
+            Locale('zh'),
+          ],
+          theme: ThemeData(
+            primarySwatch: Colors.teal,
+            brightness: Brightness.light,
+            fontFamily: 'Nunito',
+          ),
+          darkTheme: ThemeData(
+            primarySwatch: Colors.teal,
+            brightness: Brightness.dark,
+            fontFamily: 'Nunito',
+            scaffoldBackgroundColor: Colors.black,
+            appBarTheme: const AppBarTheme(backgroundColor: Colors.black),
+          ),
+          themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+          home: HomeScreen(
+            onLocaleChange: _changeLanguage,
+            isDarkMode: isDarkMode, 
+          ),
+        );
+      },
     );
   }
 }

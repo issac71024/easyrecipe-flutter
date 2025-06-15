@@ -153,7 +153,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get next => 'Next';
 
   @override
-  String get about => 'About';
+  String get about => 'About/Settings';
 
   @override
   String get aboutDesc => 'Local storage (Hive) & Cloud sync (Firestore). Google sign-in, multi-language.';
@@ -172,4 +172,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get light => 'Light';
+
+  @override
+  String get aboutDetail => 'Recipes are securely saved locally with Hive encryption. When you sign in with Google, your data is synced to Firestore cloud. This app is for academic use only.';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get logout => 'Logout';
+
+  @override
+  String get darkMode => 'Dark Mode';
 }

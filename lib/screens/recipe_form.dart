@@ -24,8 +24,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   late String difficulty;
   late String ingredients;
   late String steps;
+  String? imagePath; // asset path
   File? imageFile;
-  String? imagePath;
 
   final picker = ImagePicker();
   final _customDietController = TextEditingController();
@@ -45,7 +45,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     ingredients = r?.ingredients ?? '';
     steps = r?.steps ?? '';
     imagePath = r?.imagePath ?? '';
-    if (imagePath != null && imagePath!.isNotEmpty) {
+    if (imagePath != null && imagePath!.isNotEmpty && !imagePath!.startsWith('assets/')) {
       imageFile = File(imagePath!);
     }
   }
@@ -89,6 +89,35 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         imageFile = File(picked.path);
         imagePath = picked.path;
       });
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      imageFile = null;
+      imagePath = '';
+    });
+  }
+
+  // Preview asset、local file、no pic
+  Widget _buildImagePreview() {
+    if (imagePath == null || imagePath!.isEmpty) {
+      return Container(
+        width: 120,
+        height: 120,
+        color: Colors.teal.shade50,
+        child: const Icon(Icons.image, color: Colors.teal, size: 40),
+      );
+    } else if (imagePath!.startsWith('assets/')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.asset(imagePath!, width: 120, height: 120, fit: BoxFit.cover),
+      );
+    } else {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.file(File(imagePath!), width: 120, height: 120, fit: BoxFit.cover),
+      );
     }
   }
 
@@ -157,40 +186,55 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
           key: _formKey,
           child: ListView(
             children: [
-              if (imageFile != null)
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => Scaffold(
-                          appBar: AppBar(),
-                          backgroundColor: Colors.black,
-                          body: Center(
-                            child: Image.file(imageFile!, fit: BoxFit.contain),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                  child: Image.file(imageFile!, height: 180, fit: BoxFit.cover),
-                ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: themeColor),
-                    onPressed: _pickImageFromGallery,
-                    icon: const Icon(Icons.image),
-                    label: Text(loc.formChooseImage),
+                  GestureDetector(
+                    onTap: () {
+                      if (imagePath != null && imagePath!.isNotEmpty) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => Scaffold(
+                              appBar: AppBar(),
+                              backgroundColor: Colors.black,
+                              body: Center(
+                                child: imagePath!.startsWith('assets/')
+                                    ? Image.asset(imagePath!, fit: BoxFit.contain)
+                                    : Image.file(File(imagePath!), fit: BoxFit.contain),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    child: _buildImagePreview(),
                   ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: themeColor),
-                    onPressed: _pickImageFromCamera,
-                    icon: const Icon(Icons.camera_alt),
-                    label: Text(loc.formTakePhoto),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: themeColor),
+                        onPressed: _pickImageFromGallery,
+                        icon: const Icon(Icons.image),
+                        label: Text(loc.formChooseImage),
+                      ),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: themeColor),
+                        onPressed: _pickImageFromCamera,
+                        icon: const Icon(Icons.camera_alt),
+                        label: Text(loc.formTakePhoto),
+                      ),
+                      if (imagePath != null && imagePath!.isNotEmpty)
+                        TextButton(
+                          onPressed: _removeImage,
+                          child: const Text('移除圖片'),
+                        ),
+                    ],
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
               // CH OR ENG
               TextFormField(
                 decoration: InputDecoration(labelText: '${loc.formTitle}（繁體中文）'),

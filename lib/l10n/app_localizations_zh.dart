@@ -153,7 +153,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get next => '下一步';
 
   @override
-  String get about => '關於';
+  String get about => '關於/設定';
 
   @override
   String get aboutDesc => '簡易食譜 EasyRecipe 幫你管理和備份個人食譜，支援多語、雲端同步、Google 登入，以及拍照上傳，簡單易用。';
@@ -172,4 +172,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get light => '淺色';
+
+  @override
+  String get aboutDetail => '本 App 採用本地加密與雲端 Firestore，登入 Google 自動同步。';
+
+  @override
+  String get settings => '設定';
+
+  @override
+  String get logout => '登出';
+
+  @override
+  String get darkMode => '夜間模式';
 }

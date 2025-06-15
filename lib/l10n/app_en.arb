@@ -58,5 +58,10 @@
   "version": "Version",
   "theme": "Theme",
   "dark": "Dark",
-  "light": "Light"
+  "light": "Light",
+  "about": "About/Settings",
+  "aboutDetail": "Recipes are securely saved locally with Hive encryption. When you sign in with Google, your data is synced to Firestore cloud. This app is for academic use only.",
+  "settings": "Settings",
+  "logout": "Logout",
+  "darkMode": "Dark Mode"
 }
