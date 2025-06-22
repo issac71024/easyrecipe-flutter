@@ -184,4 +184,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get darkMode => 'Dark Mode';
+
+  @override
+  String get loading => '載入中...';
+
+  @override
+  String get noDataFound => '查無資料';
+
+  @override
+  String get noNutrition => '暫無營養資訊';
+
+  @override
+  String get calories => '熱量';
+
+  @override
+  String get protein => '蛋白質';
+
+  @override
+  String get category => '分類';
 }

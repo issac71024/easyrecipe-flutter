@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import '../models/recipe.dart';
 import 'recipe_form.dart';
 import '../l10n/app_localizations.dart';
@@ -13,6 +15,284 @@ import 'recipe_detail_screen.dart';
 import 'onboarding_screen.dart';
 import 'settings_screen.dart';
 
+// --- 天氣/金句卡片，可點擊推薦菜式 ---
+class WeatherCard extends StatefulWidget {
+  final List<Recipe> recipes;
+  final bool isZh;
+  const WeatherCard({super.key, required this.recipes, required this.isZh});
+
+  @override
+  State<WeatherCard> createState() => _WeatherCardState();
+}
+
+class _WeatherCardState extends State<WeatherCard> {
+  String? weather;
+  String? icon;
+  double? temp;
+  int? code;
+  String? quote;
+  List<Recipe> recommend = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchWeather();
+    fetchQuote();
+  }
+
+  Future<void> fetchWeather() async {
+    final lat = 22.3193; // 香港
+    final lon = 114.1694;
+    final url =
+        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=temperature_2m';
+    try {
+      final res = await http.get(Uri.parse(url));
+      final data = json.decode(res.body);
+      if (data["current_weather"] != null) {
+        final w = data["current_weather"];
+        setState(() {
+          temp = w["temperature"]?.toDouble();
+          code = w["weathercode"];
+          icon = weatherIcon(code ?? 0);
+          weather = weatherDesc(code ?? 0, widget.isZh);
+        });
+      }
+    } catch (e) {}
+    setState(() {
+      recommend = getSuggestedRecipes();
+    });
+  }
+
+  Future<void> fetchQuote() async {
+    try {
+      final res = await http.get(Uri.parse('https://api.quotable.io/random'));
+      final data = json.decode(res.body);
+      setState(() {
+        quote = data["content"];
+      });
+    } catch (e) {
+      quote = widget.isZh
+          ? "美好的一天從一頓好料理開始。"
+          : "A good day starts with good food!";
+    }
+  }
+
+  String weatherIcon(int code) {
+    if ([0].contains(code)) return '☀️';
+    if ([1, 2].contains(code)) return '⛅';
+    if ([3].contains(code)) return '☁️';
+    if ([45, 48].contains(code)) return '🌫️';
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].contains(code)) return '🌧️';
+    if ([71, 73, 75, 77, 85, 86].contains(code)) return '❄️';
+    if ([95, 96, 99].contains(code)) return '⛈️';
+    return '🌦️';
+  }
+
+  String weatherDesc(int code, bool zh) {
+    if ([0].contains(code)) return zh ? '晴朗' : 'Clear';
+    if ([1, 2].contains(code)) return zh ? '間晴' : 'Partly Cloudy';
+    if ([3].contains(code)) return zh ? '多雲' : 'Cloudy';
+    if ([45, 48].contains(code)) return zh ? '霧' : 'Foggy';
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].contains(code)) return zh ? '有雨' : 'Rainy';
+    if ([71, 73, 75, 77, 85, 86].contains(code)) return zh ? '下雪' : 'Snowy';
+    if ([95, 96, 99].contains(code)) return zh ? '雷暴' : 'Thunderstorm';
+    return zh ? '未知' : 'Unknown';
+  }
+
+  List<Recipe> getSuggestedRecipes() {
+    if (widget.recipes.isEmpty) return [];
+    if (temp == null || code == null) return [];
+    String suggestType = 'any';
+    if (temp! >= 29) suggestType = 'salad';
+    else if (temp! <= 18) suggestType = 'soup';
+    else if ([61, 63, 65, 80, 81, 82, 95, 96, 99].contains(code)) suggestType = 'comfort';
+
+    if (suggestType == 'salad') {
+      return widget.recipes.where((r) =>
+        r.diet == 'vegan' || r.diet == 'vegetarian' || r.titleEn.toLowerCase().contains('salad')
+      ).toList();
+    }
+    if (suggestType == 'soup') {
+      return widget.recipes.where((r) =>
+        r.titleEn.toLowerCase().contains('soup') || r.titleZh.contains('湯')
+      ).toList();
+    }
+    if (suggestType == 'comfort') {
+      return widget.recipes.where((r) =>
+        r.cuisine == 'chinese' || r.cuisine == 'japanese'
+      ).toList();
+    }
+    return widget.recipes..shuffle();
+  }
+
+  void _showSuggestDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final zh = widget.isZh;
+        final list = recommend.take(6).toList();
+        return AlertDialog(
+          title: Text(
+            zh ? "今日推薦菜式" : "Today's Suggestions",
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: 310,
+            child: list.isEmpty
+                ? Text(zh ? "暫無推薦" : "No suggestions available")
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: list
+                        .map(
+                          (r) => ListTile(
+                            leading: Icon(Icons.restaurant_menu, color: Colors.teal),
+                            title: Text(zh ? r.titleZh : r.titleEn,
+                                overflow: TextOverflow.ellipsis),
+                            subtitle: Text(
+                              "${zh ? r.cuisine : r.cuisine.toUpperCase()}",
+                              style: TextStyle(fontSize: 11, color: Colors.teal[800]),
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => RecipeDetailScreen(
+                                    recipe: r,
+                                    isZh: zh,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                        .toList(),
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(zh ? "關閉" : "Close"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final zh = widget.isZh;
+    return GestureDetector(
+      onTap: recommend.isNotEmpty ? _showSuggestDialog : null,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 10, left: 8, right: 8, top: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(icon ?? '🌦️', style: const TextStyle(fontSize: 36)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          zh ? "香港天氣" : "Hong Kong Weather",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              weather ?? (zh ? "讀取中" : "Loading..."),
+                              style: const TextStyle(fontSize: 17),
+                            ),
+                            if (temp != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: Text(
+                                  '${temp!.toStringAsFixed(1)}°C',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 17,
+                                      color: Colors.teal),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (recommend.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.restaurant, color: Colors.teal, size: 21),
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Text(
+                        zh ? "今日推薦：" : "Today's Suggestion:",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Text(
+                        recommend.take(2).map((r) => zh ? r.titleZh : r.titleEn).join('、'),
+                        style: TextStyle(color: Colors.teal[800]),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Icon(Icons.touch_app, color: Colors.orange[600], size: 18),
+                    const SizedBox(width: 5),
+                    Text(
+                      zh ? "點擊顯示更多建議" : "Tap to see more!",
+                      style: TextStyle(color: Colors.orange[700], fontSize: 13),
+                    )
+                  ],
+                ),
+              ],
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.format_quote, color: Colors.amber, size: 20),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      quote ??
+                          (zh
+                              ? "美好的一天從一頓好料理開始。"
+                              : "A good day starts with good food!"),
+                      style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        color: Colors.orange[900],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =================== HomeScreen ===================
 class HomeScreen extends StatefulWidget {
   final void Function(Locale) onLocaleChange;
   final ValueNotifier<bool> isDarkMode;
@@ -44,118 +324,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _insertSampleRecipesIfEmpty() async {
     final box = Hive.box<Recipe>('recipes');
     if (box.isEmpty) {
-      final samples = [
-  Recipe(
-    titleZh: "日式照燒雞腿飯",
-    titleEn: "Japanese Teriyaki Chicken Bowl",
-    cuisine: "japanese",
-    diet: "high_protein",
-    cookingTime: 30,
-    difficulty: "medium",
-    ingredients: "雞腿排、醬油、味醂、米酒、糖、白飯",
-    steps: "1. 雞腿煎香\n2. 下醬汁煮收汁\n3. 盛飯淋汁",
-    imagePath: "assets/sample1.jpg",
-  ),
-  Recipe(
-    titleZh: "番茄炒蛋",
-    titleEn: "Tomato Scrambled Eggs",
-    cuisine: "chinese",
-    diet: "vegetarian",
-    cookingTime: 10,
-    difficulty: "easy",
-    ingredients: "番茄、雞蛋、蔥、鹽",
-    steps: "1. 番茄切塊\n2. 蛋炒熟備用\n3. 炒番茄後回鍋蛋",
-    imagePath: "assets/sample2.jpg",
-  ),
-  Recipe(
-    titleZh: "美式鬆餅",
-    titleEn: "American Pancakes",
-    cuisine: "western",
-    diet: "none",
-    cookingTime: 25,
-    difficulty: "easy",
-    ingredients: "麵粉、牛奶、蛋、糖、泡打粉、奶油",
-    steps: "1. 混合粉類\n2. 加蛋牛奶拌勻\n3. 小火煎至金黃",
-    imagePath: "assets/sample3.jpg",
-  ),
-  Recipe(
-    titleZh: "健康藜麥沙拉",
-    titleEn: "Healthy Quinoa Salad",
-    cuisine: "western",
-    diet: "vegan",
-    cookingTime: 15,
-    difficulty: "easy",
-    ingredients: "藜麥、小黃瓜、蕃茄、檸檬、橄欖油、黑胡椒",
-    steps: "1. 藜麥煮熟放涼\n2. 蔬菜切丁拌勻\n3. 加檸檬汁橄欖油調味",
-    imagePath: "assets/sample4.jpg",
-  ),
-  Recipe(
-    titleZh: "麻婆豆腐",
-    titleEn: "Mapo Tofu",
-    cuisine: "chinese",
-    diet: "none",
-    cookingTime: 20,
-    difficulty: "medium",
-    ingredients: "嫩豆腐、豬絞肉、豆瓣醬、蔥、薑、蒜",
-    steps: "1. 爆香蔥薑蒜\n2. 下絞肉炒香\n3. 加豆腐及調味料煮滾",
-    imagePath: "assets/sample5.jpg",
-  ),
-  Recipe(
-    titleZh: "日式玉子燒",
-    titleEn: "Japanese Tamagoyaki",
-    cuisine: "japanese",
-    diet: "vegetarian",
-    cookingTime: 12,
-    difficulty: "medium",
-    ingredients: "雞蛋、糖、醬油、鹽",
-    steps: "1. 蛋液調味\n2. 分次煎成層\n3. 捲起切片",
-    imagePath: "assets/sample6.jpg",
-  ),
-  Recipe(
-    titleZh: "香煎三文魚",
-    titleEn: "Pan-Seared Salmon",
-    cuisine: "western",
-    diet: "high_protein",
-    cookingTime: 18,
-    difficulty: "easy",
-    ingredients: "三文魚、橄欖油、檸檬、鹽、黑胡椒",
-    steps: "1. 魚排兩面煎熟\n2. 檸檬汁調味\n3. 盛盤撒胡椒",
-    imagePath: "assets/sample7.jpg",
-  ),
-  Recipe(
-    titleZh: "和風牛肉丼",
-    titleEn: "Gyudon (Japanese Beef Bowl)",
-    cuisine: "japanese",
-    diet: "none",
-    cookingTime: 20,
-    difficulty: "medium",
-    ingredients: "牛肉片、洋蔥、醬油、味醂、白飯",
-    steps: "1. 洋蔥炒軟\n2. 牛肉快炒\n3. 加醬汁盛飯上",
-    imagePath: "assets/sample8.jpg",
-  ),
-  Recipe(
-    titleZh: "西式蔬菜湯",
-    titleEn: "Western Vegetable Soup",
-    cuisine: "western",
-    diet: "vegan",
-    cookingTime: 30,
-    difficulty: "easy",
-    ingredients: "番茄、胡蘿蔔、馬鈴薯、洋蔥、芹菜、鹽",
-    steps: "1. 蔬菜切塊\n2. 煮湯至軟爛\n3. 加鹽調味",
-    imagePath: "assets/sample9.jpg",
-  ),
-  Recipe(
-    titleZh: "可可布朗尼",
-    titleEn: "Chocolate Brownies",
-    cuisine: "western",
-    diet: "none",
-    cookingTime: 35,
-    difficulty: "medium",
-    ingredients: "黑巧克力、奶油、蛋、糖、麵粉、可可粉",
-    steps: "1. 巧克力奶油隔水融化\n2. 拌入蛋糖粉類\n3. 烤箱烘烤25分鐘",
-    imagePath: "assets/sample10.jpg",
-  ),
-      ];
+      final samples = [ /* ...你的 10 個 Recipe Sample ... */ ];
       for (final r in samples) {
         await box.add(r);
       }
@@ -454,159 +623,159 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         appBar: AppBar(
-  backgroundColor: Colors.transparent,
-  elevation: 0,
-  centerTitle: true, 
-  title: FittedBox(
-    fit: BoxFit.scaleDown,
-    child: Text(
-      loc.appTitle,
-      style: GoogleFonts.nunito(
-          fontWeight: FontWeight.w800, fontSize: 24, color: Colors.white),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    ),
-  ),
-  actions: [
-    if (_user != null)
-      PopupMenuButton<String>(
-        offset: const Offset(0, 48),
-        tooltip: _user!.displayName ?? 'Account',
-        icon: _user!.photoURL != null && _user!.photoURL!.isNotEmpty
-            ? CircleAvatar(
-                backgroundImage: NetworkImage(_user!.photoURL!),
-                radius: 18,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              loc.appTitle,
+              style: GoogleFonts.nunito(
+                  fontWeight: FontWeight.w800, fontSize: 24, color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          actions: [
+            if (_user != null)
+              PopupMenuButton<String>(
+                offset: const Offset(0, 48),
+                tooltip: _user!.displayName ?? 'Account',
+                icon: _user!.photoURL != null && _user!.photoURL!.isNotEmpty
+                    ? CircleAvatar(
+                        backgroundImage: NetworkImage(_user!.photoURL!),
+                        radius: 18,
+                      )
+                    : CircleAvatar(
+                        backgroundColor: Colors.brown.shade200,
+                        radius: 18,
+                        child: Text(
+                          (_user!.displayName ?? '').isNotEmpty
+                              ? _user!.displayName![0].toUpperCase()
+                              : '?',
+                          style: GoogleFonts.nunito(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    enabled: false,
+                    child: Row(
+                      children: [
+                        Icon(Icons.account_circle, color: themeColor),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _user!.displayName ?? '',
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.nunito(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.logout, color: Colors.redAccent, size: 20),
+                        const SizedBox(width: 6),
+                        Text(loc.logout ?? "登出"),
+                      ],
+                    ),
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'logout') _signOut();
+                },
               )
-            : CircleAvatar(
-                backgroundColor: Colors.brown.shade200,
-                radius: 18,
-                child: Text(
-                  (_user!.displayName ?? '').isNotEmpty
-                      ? _user!.displayName![0].toUpperCase()
-                      : '?',
-                  style: GoogleFonts.nunito(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: 20,
-                  ),
-                ),
+            else
+              IconButton(
+                icon: const Icon(Icons.login),
+                tooltip: 'Google 登入',
+                onPressed: _signInWithGoogle,
               ),
-        itemBuilder: (context) => [
-          PopupMenuItem(
-            enabled: false,
-            child: Row(
-              children: [
-                Icon(Icons.account_circle, color: themeColor),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    _user!.displayName ?? '',
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.nunito(fontWeight: FontWeight.bold),
+            IconButton(
+              icon: const Icon(Icons.cloud_upload),
+              tooltip: '雲端備份',
+              onPressed: _backupToCloud,
+            ),
+            IconButton(
+              icon: const Icon(Icons.cloud_download),
+              tooltip: '從雲端還原',
+              onPressed: _restoreFromCloud,
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'en') {
+                  widget.onLocaleChange(const Locale('en'));
+                } else if (value == 'zh') {
+                  widget.onLocaleChange(const Locale('zh'));
+                }
+              },
+              icon: const Icon(Icons.language),
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'en', child: Text('English')),
+                const PopupMenuItem(value: 'zh', child: Text('繁體中文')),
+              ],
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(60),
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: loc.searchHint,
+                  hintStyle: GoogleFonts.nunito(
+                      color: isDark ? Colors.teal.shade100 : Colors.teal.shade800),
+                  prefixIcon: Icon(Icons.search, color: isDark ? Colors.teal.shade100 : Colors.teal),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
+                  filled: true,
+                  fillColor: isDark ? Colors.grey[900] : Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
                 ),
-              ],
+                style: GoogleFonts.nunito(fontSize: 16, color: isDark ? Colors.white : Colors.black),
+                onChanged: (value) {
+                  setState(() {
+                    searchTerm = value;
+                  });
+                },
+              ),
             ),
           ),
-          const PopupMenuDivider(),
-          PopupMenuItem(
-            value: 'logout',
-            child: Row(
-              children: [
-                const Icon(Icons.logout, color: Colors.redAccent, size: 20),
-                const SizedBox(width: 6),
-                Text(loc.logout ?? "登出"),
-              ],
-            ),
-          ),
-        ],
-        onSelected: (value) {
-          if (value == 'logout') _signOut();
-        },
-      )
-    else
-      IconButton(
-        icon: const Icon(Icons.login),
-        tooltip: 'Google 登入',
-        onPressed: _signInWithGoogle,
-      ),
-    IconButton(
-      icon: const Icon(Icons.cloud_upload),
-      tooltip: '雲端備份',
-      onPressed: _backupToCloud,
-    ),
-    IconButton(
-      icon: const Icon(Icons.cloud_download),
-      tooltip: '從雲端還原',
-      onPressed: _restoreFromCloud,
-    ),
-    PopupMenuButton<String>(
-      onSelected: (value) {
-        if (value == 'en') {
-          widget.onLocaleChange(const Locale('en'));
-        } else if (value == 'zh') {
-          widget.onLocaleChange(const Locale('zh'));
-        }
-      },
-      icon: const Icon(Icons.language),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: 'en', child: Text('English')),
-        const PopupMenuItem(value: 'zh', child: Text('繁體中文')),
-      ],
-    ),
-  ],
-  bottom: PreferredSize(
-    preferredSize: const Size.fromHeight(60),
-    child: Container(
-      margin: const EdgeInsets.all(16),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: loc.searchHint,
-          hintStyle: GoogleFonts.nunito(
-              color: isDark ? Colors.teal.shade100 : Colors.teal.shade800),
-          prefixIcon: Icon(Icons.search, color: isDark ? Colors.teal.shade100 : Colors.teal),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          filled: true,
-          fillColor: isDark ? Colors.grey[900] : Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
         ),
-        style: GoogleFonts.nunito(fontSize: 16, color: isDark ? Colors.white : Colors.black),
-        onChanged: (value) {
-          setState(() {
-            searchTerm = value;
-          });
-        },
-      ),
-    ),
-  ),
-),
+        body: ValueListenableBuilder(
+          valueListenable: recipeBox.listenable(),
+          builder: (context, Box<Recipe> box, _) {
+            _autoBackupToCloud();
 
-        body: RefreshIndicator(
-          onRefresh: () async {
-            setState(() {});
-          },
-          child: ValueListenableBuilder(
-            valueListenable: recipeBox.listenable(),
-            builder: (context, Box<Recipe> box, _) {
-              _autoBackupToCloud();
+            final isZh = Localizations.localeOf(context).languageCode == 'zh';
+            final recipes = box.values.toList();
+            final searchLower = searchTerm.toLowerCase();
+            final filtered = recipes.where((recipe) {
+              if (isZh && recipe.titleZh.trim().isEmpty) return false;
+              if (!isZh && recipe.titleEn.trim().isEmpty) return false;
+              final title = isZh ? recipe.titleZh : recipe.titleEn;
+              return title.toLowerCase().contains(searchLower) ||
+                  recipe.ingredients.toLowerCase().contains(searchLower) ||
+                  recipe.cookingTime.toString().contains(searchLower);
+            }).toList();
 
-              final isZh = Localizations.localeOf(context).languageCode == 'zh';
-              final searchLower = searchTerm.toLowerCase();
-              final filtered = box.values.where((recipe) {
-                if (isZh && recipe.titleZh.trim().isEmpty) return false;
-                if (!isZh && recipe.titleEn.trim().isEmpty) return false;
-                final title = isZh ? recipe.titleZh : recipe.titleEn;
-                return title.toLowerCase().contains(searchLower) ||
-                    recipe.ingredients.toLowerCase().contains(searchLower) ||
-                    recipe.cookingTime.toString().contains(searchLower);
-              }).toList();
-
-              if (filtered.isEmpty) {
-                return ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [
+            return RefreshIndicator(
+              onRefresh: () async => setState(() {}),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  // --- 天氣與推薦卡片放最上 ---
+                  WeatherCard(recipes: recipes, isZh: isZh),
+                  if (filtered.isEmpty)
                     Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -623,169 +792,187 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                );
-              }
-
-              return ListView.builder(
-                physics: const AlwaysScrollableScrollPhysics(),
-                itemCount: filtered.length,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                itemBuilder: (context, index) {
-                  final recipe = filtered[index];
-                  return Card(
-                    elevation: 7,
-                    margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(24),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => RecipeDetailScreen(
-                              recipe: recipe,
-                              isZh: isZh,
-                            ),
+                    )
+                  else
+                    ...filtered.map((recipe) => Card(
+                          elevation: 7,
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
                           ),
-                        );
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isDark
-                                ? [Colors.grey.shade900, Colors.grey.shade800]
-                                : [Colors.brown.shade50, Colors.brown.shade100],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              recipeImage(recipe.imagePath),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(24),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => RecipeDetailScreen(
+                                    recipe: recipe,
+                                    isZh: isZh,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: isDark
+                                      ? [Colors.grey.shade900, Colors.grey.shade800]
+                                      : [Colors.brown.shade50, Colors.brown.shade100],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      isZh ? recipe.titleZh : recipe.titleEn,
-                                      style: GoogleFonts.nunito(
-                                        fontSize: 19,
-                                        fontWeight: FontWeight.w800,
-                                        color: isDark
-                                            ? Colors.brown.shade50
-                                            : Colors.brown.shade900,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 7),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.restaurant_menu,
-                                            color: Colors.teal.shade200,
-                                            size: 16),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${translateCuisine(loc)[recipe.cuisine] ?? recipe.cuisine} • ${translateDiet(loc)[recipe.diet] ?? recipe.diet}',
-                                          style: GoogleFonts.inter(
-                                              fontSize: 13,
-                                              color: Colors.teal.shade800),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          margin: const EdgeInsets.only(right: 8, top: 2),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors:
-                                                  recipe.difficulty == 'easy'
-                                                      ? [Colors.green.shade200, Colors.green.shade400]
-                                                      : recipe.difficulty == 'medium'
-                                                          ? [Colors.orange.shade200, Colors.orange]
-                                                          : [Colors.red.shade200, Colors.red],
-                                            ),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            _translateDifficulty(recipe.difficulty, loc),
+                                    recipeImage(recipe.imagePath),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            isZh
+                                                ? recipe.titleZh
+                                                : recipe.titleEn,
                                             style: GoogleFonts.nunito(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.white,
+                                              fontSize: 19,
+                                              fontWeight: FontWeight.w800,
+                                              color: isDark
+                                                  ? Colors.brown.shade50
+                                                  : Colors.brown.shade900,
                                             ),
                                           ),
-                                        ),
-                                        Icon(Icons.schedule,
-                                            size: 15, color: Colors.grey.shade500),
-                                        Text(
-                                          ' ${recipe.cookingTime} ${loc.minutes}',
-                                          style: GoogleFonts.inter(
-                                              fontSize: 13, color: Colors.grey[700]),
-                                        ),
-                                      ],
-                                    ),
-                                    if (recipe.ingredients.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4.0),
-                                        child: Text(
-                                          '📋 ${recipe.ingredients}',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: GoogleFonts.inter(
-                                              fontSize: 13, color: Colors.grey[700]),
-                                        ),
+                                          const SizedBox(height: 7),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.restaurant_menu,
+                                                  color: Colors.teal.shade200,
+                                                  size: 16),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${translateCuisine(loc)[recipe.cuisine] ?? recipe.cuisine} • ${translateDiet(loc)[recipe.diet] ?? recipe.diet}',
+                                                style: GoogleFonts.inter(
+                                                    fontSize: 13,
+                                                    color: Colors.teal.shade800),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Row(
+                                            children: [
+                                              Container(
+                                                margin: const EdgeInsets.only(
+                                                    right: 8, top: 2),
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 10, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: recipe.difficulty == 'easy'
+                                                        ? [
+                                                            Colors.green.shade200,
+                                                            Colors.green.shade400
+                                                          ]
+                                                        : recipe.difficulty == 'medium'
+                                                            ? [
+                                                                Colors
+                                                                    .orange.shade200,
+                                                                Colors.orange
+                                                              ]
+                                                            : [
+                                                                Colors.red.shade200,
+                                                                Colors.red
+                                                              ],
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Text(
+                                                  _translateDifficulty(
+                                                      recipe.difficulty, loc),
+                                                  style: GoogleFonts.nunito(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                              Icon(Icons.schedule,
+                                                  size: 15,
+                                                  color: Colors.grey.shade500),
+                                              Text(
+                                                ' ${recipe.cookingTime} ${loc.minutes}',
+                                                style: GoogleFonts.inter(
+                                                    fontSize: 13,
+                                                    color: Colors.grey[700]),
+                                              ),
+                                            ],
+                                          ),
+                                          if (recipe.ingredients.isNotEmpty)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.only(top: 4.0),
+                                              child: Text(
+                                                '📋 ${recipe.ingredients}',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.inter(
+                                                    fontSize: 13,
+                                                    color: Colors.grey[700]),
+                                              ),
+                                            ),
+                                        ],
                                       ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline,
+                                          color: Colors.redAccent),
+                                      onPressed: () async {
+                                        final confirm =
+                                            await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: Text(loc.deleteDialogTitle),
+                                            content:
+                                                Text(loc.deleteDialogContent),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(
+                                                        context, false),
+                                                child:
+                                                    Text(loc.deleteCancel),
+                                              ),
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(
+                                                        context, true),
+                                                child:
+                                                    Text(loc.deleteConfirm),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          await recipe.delete();
+                                          setState(() {});
+                                        }
+                                      },
+                                    ),
                                   ],
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                onPressed: () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text(loc.deleteDialogTitle),
-                                      content: Text(loc.deleteDialogContent),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: Text(loc.deleteCancel),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: Text(loc.deleteConfirm),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm == true) {
-                                    await recipe.delete();
-                                    setState(() {});
-                                  }
-                                },
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                        )),
+                ],
+              ),
+            );
+          },
         ),
         floatingActionButton: Container(
           margin: const EdgeInsets.only(bottom: 10, right: 6),

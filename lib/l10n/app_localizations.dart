@@ -448,6 +448,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark Mode'**
   String get darkMode;
+
+  /// No description provided for @loading.
+  ///
+  /// In en, this message translates to:
+  /// **'載入中...'**
+  String get loading;
+
+  /// No description provided for @noDataFound.
+  ///
+  /// In en, this message translates to:
+  /// **'查無資料'**
+  String get noDataFound;
+
+  /// No description provided for @noNutrition.
+  ///
+  /// In en, this message translates to:
+  /// **'暫無營養資訊'**
+  String get noNutrition;
+
+  /// No description provided for @calories.
+  ///
+  /// In en, this message translates to:
+  /// **'熱量'**
+  String get calories;
+
+  /// No description provided for @protein.
+  ///
+  /// In en, this message translates to:
+  /// **'蛋白質'**
+  String get protein;
+
+  /// No description provided for @category.
+  ///
+  /// In en, this message translates to:
+  /// **'分類'**
+  String get category;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

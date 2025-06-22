@@ -64,5 +64,12 @@
   "aboutDetail": "本 App 採用本地加密與雲端 Firestore，登入 Google 自動同步。",
   "settings": "設定",
   "logout": "登出",
-  "darkMode": "夜間模式"
+  "darkMode": "夜間模式",
+  "loading": "Loading...",
+  "noDataFound": "No data found",
+  "noNutrition": "No nutrition info",
+  "calories": "Calories",
+  "protein": "Protein",
+  "category": "Category"
+
 }

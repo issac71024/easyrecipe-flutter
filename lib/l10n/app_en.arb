@@ -63,5 +63,12 @@
   "aboutDetail": "Recipes are securely saved locally with Hive encryption. When you sign in with Google, your data is synced to Firestore cloud. This app is for academic use only.",
   "settings": "Settings",
   "logout": "Logout",
-  "darkMode": "Dark Mode"
+  "darkMode": "Dark Mode",
+  "loading": "載入中...",
+  "noDataFound": "查無資料",
+  "noNutrition": "暫無營養資訊",
+  "calories": "熱量",
+    "protein": "蛋白質",
+    "category": "分類"
+
 }

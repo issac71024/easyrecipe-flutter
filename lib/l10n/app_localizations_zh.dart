@@ -184,4 +184,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get darkMode => '夜間模式';
+
+  @override
+  String get loading => 'Loading...';
+
+  @override
+  String get noDataFound => 'No data found';
+
+  @override
+  String get noNutrition => 'No nutrition info';
+
+  @override
+  String get calories => 'Calories';
+
+  @override
+  String get protein => 'Protein';
+
+  @override
+  String get category => 'Category';
 }
