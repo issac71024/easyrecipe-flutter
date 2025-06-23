@@ -15,11 +15,10 @@ import 'recipe_detail_screen.dart';
 import 'onboarding_screen.dart';
 import 'settings_screen.dart';
 
-// --- 天氣/金句卡片，可點擊推薦菜式 ---
+// ========== 天氣/金句卡片元件 ==========
 class WeatherCard extends StatefulWidget {
-  final List<Recipe> recipes;
   final bool isZh;
-  const WeatherCard({super.key, required this.recipes, required this.isZh});
+  const WeatherCard({super.key, required this.isZh});
 
   @override
   State<WeatherCard> createState() => _WeatherCardState();
@@ -31,11 +30,23 @@ class _WeatherCardState extends State<WeatherCard> {
   double? temp;
   int? code;
   String? quote;
-  List<Recipe> recommend = [];
+  String? suggestion;
 
   @override
   void initState() {
     super.initState();
+    _fetchAll();
+  }
+
+  @override
+  void didUpdateWidget(covariant WeatherCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isZh != oldWidget.isZh) {
+      _fetchAll();
+    }
+  }
+
+  void _fetchAll() {
     fetchWeather();
     fetchQuote();
   }
@@ -50,30 +61,44 @@ class _WeatherCardState extends State<WeatherCard> {
       final data = json.decode(res.body);
       if (data["current_weather"] != null) {
         final w = data["current_weather"];
+        final _temp = w["temperature"]?.toDouble();
+        final _code = w["weathercode"];
         setState(() {
-          temp = w["temperature"]?.toDouble();
-          code = w["weathercode"];
+          temp = _temp;
+          code = _code;
           icon = weatherIcon(code ?? 0);
           weather = weatherDesc(code ?? 0, widget.isZh);
+          suggestion = weatherSuggestion(_temp, _code, widget.isZh);
         });
       }
-    } catch (e) {}
-    setState(() {
-      recommend = getSuggestedRecipes();
-    });
+    } catch (e) {
+      setState(() {
+        suggestion = widget.isZh ? "無法取得天氣建議" : "Unable to fetch weather suggestion";
+      });
+    }
   }
 
   Future<void> fetchQuote() async {
     try {
-      final res = await http.get(Uri.parse('https://api.quotable.io/random'));
-      final data = json.decode(res.body);
-      setState(() {
-        quote = data["content"];
-      });
+      final lang = widget.isZh ? 'zh' : 'en';
+      // quotable.io 不支援中文，這裡簡單用固定句子
+      if (lang == 'en') {
+        final res = await http.get(Uri.parse('https://api.quotable.io/random?lang=en'));
+        final data = json.decode(res.body);
+        setState(() {
+          quote = data["content"];
+        });
+      } else {
+        setState(() {
+          quote = "美好的一天從一頓好料理開始。";
+        });
+      }
     } catch (e) {
-      quote = widget.isZh
-          ? "美好的一天從一頓好料理開始。"
-          : "A good day starts with good food!";
+      setState(() {
+        quote = widget.isZh
+            ? "美好的一天從一頓好料理開始。"
+            : "A good day starts with good food!";
+      });
     }
   }
 
@@ -99,200 +124,113 @@ class _WeatherCardState extends State<WeatherCard> {
     return zh ? '未知' : 'Unknown';
   }
 
-  List<Recipe> getSuggestedRecipes() {
-    if (widget.recipes.isEmpty) return [];
-    if (temp == null || code == null) return [];
-    String suggestType = 'any';
-    if (temp! >= 29) suggestType = 'salad';
-    else if (temp! <= 18) suggestType = 'soup';
-    else if ([61, 63, 65, 80, 81, 82, 95, 96, 99].contains(code)) suggestType = 'comfort';
-
-    if (suggestType == 'salad') {
-      return widget.recipes.where((r) =>
-        r.diet == 'vegan' || r.diet == 'vegetarian' || r.titleEn.toLowerCase().contains('salad')
-      ).toList();
+  // 只給出天氣料理建議（不指定菜式）
+  String weatherSuggestion(double? temp, int? code, bool zh) {
+    if (temp == null || code == null) return zh ? "建議載入中..." : "Loading...";
+    // 香港氣候習慣：29°C以上較熱, 18°C以下較冷
+    if (temp >= 29) {
+      return zh ? "建議清爽料理，例如沙拉、冷麵或輕食。" : "Suggestion: Refreshing dishes like salads, cold noodles, or light meals.";
+    } else if (temp <= 18) {
+      return zh ? "建議熱湯、燉菜或煲仔飯等溫暖料理。" : "Suggestion: Hot soup, stew, or warm comfort food.";
+    } else if ([61, 63, 65, 80, 81, 82, 95, 96, 99].contains(code)) {
+      return zh ? "有雨，建議來一份熱騰騰的家常料理。" : "Rainy day! Try some hearty home-cooked food.";
     }
-    if (suggestType == 'soup') {
-      return widget.recipes.where((r) =>
-        r.titleEn.toLowerCase().contains('soup') || r.titleZh.contains('湯')
-      ).toList();
-    }
-    if (suggestType == 'comfort') {
-      return widget.recipes.where((r) =>
-        r.cuisine == 'chinese' || r.cuisine == 'japanese'
-      ).toList();
-    }
-    return widget.recipes..shuffle();
+    return zh ? "適合炒菜、便當、壽司等簡單家常料理。" : "Great for quick stir-fries, bento, sushi or simple home cooking.";
   }
 
-  void _showSuggestDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final zh = widget.isZh;
-        final list = recommend.take(6).toList();
-        return AlertDialog(
-          title: Text(
-            zh ? "今日推薦菜式" : "Today's Suggestions",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: SizedBox(
-            width: 310,
-            child: list.isEmpty
-                ? Text(zh ? "暫無推薦" : "No suggestions available")
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: list
-                        .map(
-                          (r) => ListTile(
-                            leading: Icon(Icons.restaurant_menu, color: Colors.teal),
-                            title: Text(zh ? r.titleZh : r.titleEn,
-                                overflow: TextOverflow.ellipsis),
-                            subtitle: Text(
-                              "${zh ? r.cuisine : r.cuisine.toUpperCase()}",
-                              style: TextStyle(fontSize: 11, color: Colors.teal[800]),
-                            ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => RecipeDetailScreen(
-                                    recipe: r,
-                                    isZh: zh,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                        .toList(),
-                  ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(zh ? "關閉" : "Close"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final zh = widget.isZh;
-    return GestureDetector(
-      onTap: recommend.isNotEmpty ? _showSuggestDialog : null,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 10, left: 8, right: 8, top: 4),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
-          child: Column(
+@override
+Widget build(BuildContext context) {
+  final zh = widget.isZh;
+  return Card(
+    margin: const EdgeInsets.only(bottom: 10, left: 8, right: 8, top: 4),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    elevation: 2,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(icon ?? '🌦️', style: const TextStyle(fontSize: 36)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          zh ? "香港天氣" : "Hong Kong Weather",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              weather ?? (zh ? "讀取中" : "Loading..."),
-                              style: const TextStyle(fontSize: 17),
-                            ),
-                            if (temp != null)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 6),
-                                child: Text(
-                                  '${temp!.toStringAsFixed(1)}°C',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 17,
-                                      color: Colors.teal),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (recommend.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Row(
+              Text(icon ?? '🌦️', style: const TextStyle(fontSize: 36)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.restaurant, color: Colors.teal, size: 21),
-                    const SizedBox(width: 7),
-                    Flexible(
-                      child: Text(
-                        zh ? "今日推薦：" : "Today's Suggestion:",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(width: 7),
-                    Flexible(
-                      child: Text(
-                        recommend.take(2).map((r) => zh ? r.titleZh : r.titleEn).join('、'),
-                        style: TextStyle(color: Colors.teal[800]),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Icon(Icons.touch_app, color: Colors.orange[600], size: 18),
-                    const SizedBox(width: 5),
                     Text(
-                      zh ? "點擊顯示更多建議" : "Tap to see more!",
-                      style: TextStyle(color: Colors.orange[700], fontSize: 13),
-                    )
+                      zh ? "香港天氣" : "Hong Kong Weather",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          weather ?? (zh ? "讀取中" : "Loading..."),
+                          style: const TextStyle(fontSize: 17),
+                        ),
+                        if (temp != null)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Text(
+                              '${temp!.toStringAsFixed(1)}°C',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 17,
+                                  color: Colors.teal),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.format_quote, color: Colors.amber, size: 20),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      quote ??
-                          (zh
-                              ? "美好的一天從一頓好料理開始。"
-                              : "A good day starts with good food!"),
-                      style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: Colors.orange[900],
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          // Cooking suggestion: 標題與內容分行
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.restaurant, color: Colors.teal, size: 21),
+              const SizedBox(width: 7),
+              Text(
+                zh ? "料理建議：" : "Cooking Suggestion:",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text(
+            suggestion ?? (zh ? "建議載入中..." : "Loading..."),
+            style: TextStyle(color: Colors.teal[800], fontSize: 15),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.format_quote, color: Colors.amber, size: 20),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  quote ??
+                      (zh
+                          ? "美好的一天從一頓好料理開始。"
+                          : "A good day starts with good food!"),
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    color: Colors.orange[900],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }
-
-// =================== HomeScreen ===================
+}
+// =================== HomeScreen 主體 ===================
 class HomeScreen extends StatefulWidget {
   final void Function(Locale) onLocaleChange;
   final ValueNotifier<bool> isDarkMode;
@@ -324,7 +262,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _insertSampleRecipesIfEmpty() async {
     final box = Hive.box<Recipe>('recipes');
     if (box.isEmpty) {
-      final samples = [ /* ...你的 10 個 Recipe Sample ... */ ];
+      final samples = [
+        // ... 你的 sample 10 個食譜 ...
+        Recipe(
+          titleZh: "日式照燒雞腿飯",
+          titleEn: "Japanese Teriyaki Chicken Bowl",
+          cuisine: "japanese",
+          diet: "high_protein",
+          cookingTime: 30,
+          difficulty: "medium",
+          ingredients: "雞腿排、醬油、味醂、米酒、糖、白飯",
+          steps: "1. 雞腿煎香\n2. 下醬汁煮收汁\n3. 盛飯淋汁",
+          imagePath: "assets/sample1.jpg",
+        ),
+        // ... 其餘略 ...
+      ];
       for (final r in samples) {
         await box.add(r);
       }
@@ -773,8 +725,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  // --- 天氣與推薦卡片放最上 ---
-                  WeatherCard(recipes: recipes, isZh: isZh),
+                  WeatherCard(isZh: isZh), // 天氣卡片
                   if (filtered.isEmpty)
                     Center(
                       child: Column(
