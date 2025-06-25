@@ -17,7 +17,7 @@ import 'recipe_detail_screen.dart';
 import 'onboarding_screen.dart';
 import 'settings_screen.dart';
 
-// ========== Weather Card ==========
+// Weather Card
 class WeatherCard extends StatefulWidget {
   final bool isZh;
   const WeatherCard({super.key, required this.isZh});
@@ -68,7 +68,7 @@ class _WeatherCardState extends State<WeatherCard> {
     });
 
     try {
-      // Step 1: Get the Location
+      //  Get the Location
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
         permission = await Geolocator.requestPermission();
@@ -87,7 +87,7 @@ class _WeatherCardState extends State<WeatherCard> {
       double lat = position.latitude;
       double lon = position.longitude;
 
-      // Step 2: Default Location
+      // Default Location
       List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon, localeIdentifier: widget.isZh ? 'zh_HK' : 'en');
       String cityEn = "Hong Kong";
       String cityZh = "香港";
@@ -101,7 +101,7 @@ class _WeatherCardState extends State<WeatherCard> {
         placeZh = cityZh;
       });
 
-      // Step 3: Get Weather
+      // Get Weather
       await fetchWeatherByLatLng(lat, lon);
     } catch (e) {
       setState(() {
@@ -312,7 +312,7 @@ class _WeatherCardState extends State<WeatherCard> {
   }
 }
 
-// =================== HomeScreen Body ==================
+// HomeScreen Body
 class HomeScreen extends StatefulWidget {
   final void Function(Locale) onLocaleChange;
   final ValueNotifier<bool> isDarkMode;
@@ -352,8 +352,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "high_protein",
           cookingTime: 30,
           difficulty: "medium",
-          ingredients: "雞腿排、醬油、味醂、米酒、糖、白飯",
-          steps: "1. 雞腿煎香\n2. 下醬汁煮收汁\n3. 盛飯淋汁",
+          ingredients: "Chicken、Soy sauce、Mirin、Wine、Sugar、Rice",
+          steps: "1. Fry the chicken legs until fragrant\n2. Add the sauce and cook until the sauce is collected\n3. Serve the rice with the sauce",
           imagePath: "assets/sample1.jpg",
         ),
         Recipe(
@@ -363,8 +363,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "vegetarian",
           cookingTime: 10,
           difficulty: "easy",
-          ingredients: "番茄、雞蛋、蔥、鹽",
-          steps: "1. 番茄切塊\n2. 蛋炒熟備用\n3. 炒番茄後回鍋蛋",
+          ingredients: "Tomato、Egg、Green onion、salt",
+          steps: "1. Dice the tomatoes\n2. Fry the eggs until cooked\n3. Add the eggs to the pan after frying the tomatoes",
           imagePath: "assets/sample2.jpg",
         ),
         Recipe(
@@ -374,8 +374,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "none",
           cookingTime: 25,
           difficulty: "easy",
-          ingredients: "麵粉、牛奶、蛋、糖、泡打粉、奶油",
-          steps: "1. 混合粉類\n2. 加蛋牛奶拌勻\n3. 小火煎至金黃",
+          ingredients: "Flour、Milk、Egg、Sugar、Baking Powder、Butter",
+          steps: "1. Mix flour\n2. Add eggs and milk and mix well\n3. Fry on low heat until golden",
           imagePath: "assets/sample3.jpg",
         ),
         Recipe(
@@ -385,8 +385,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "vegan",
           cookingTime: 15,
           difficulty: "easy",
-          ingredients: "藜麥、小黃瓜、蕃茄、檸檬、橄欖油、黑胡椒",
-          steps: "1. 藜麥煮熟放涼\n2. 蔬菜切丁拌勻\n3. 加檸檬汁橄欖油調味",
+          ingredients: "Quinoa、cucumber、Tomato、Lemon、Olive oil、Black pepper",
+          steps: "1. Cook quinoa and let cool\n2. Dice vegetables and mix well\n3. Season with lemon juice and olive oil",
           imagePath: "assets/sample4.jpg",
         ),
         Recipe(
@@ -396,8 +396,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "none",
           cookingTime: 20,
           difficulty: "medium",
-          ingredients: "嫩豆腐、豬絞肉、豆瓣醬、蔥、薑、蒜",
-          steps: "1. 爆香蔥薑蒜\n2. 下絞肉炒香\n3. 加豆腐及調味料煮滾",
+          ingredients: "Soft Tofu、Miced Pork、Bean paste、onion、ginger、garlic",
+          steps: "1. Stir-fry onion, ginger and garlic\n2. Add minced meat\n3. Add tofu and seasonings and bring to a boil",
           imagePath: "assets/sample5.jpg",
         ),
         Recipe(
@@ -407,8 +407,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "vegetarian",
           cookingTime: 12,
           difficulty: "medium",
-          ingredients: "雞蛋、糖、醬油、鹽",
-          steps: "1. 蛋液調味\n2. 分次煎成層\n3. 捲起切片",
+          ingredients: "Eggs、Sugar、Soy Sauce、Salt",
+          steps: "1. Season with egg liquid\n2. Fry in layers\n3. Roll up and slice",
           imagePath: "assets/sample6.jpg",
         ),
         Recipe(
@@ -418,8 +418,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "high_protein",
           cookingTime: 18,
           difficulty: "easy",
-          ingredients: "三文魚、橄欖油、檸檬、鹽、黑胡椒",
-          steps: "1. 魚排兩面煎熟\n2. 檸檬汁調味\n3. 盛盤撒胡椒",
+          ingredients: "Salmon、Olive Oil、Lemon、Salt、Black Pepper",
+          steps: "1. Fry the fish fillet\n2. Season with lemon juice\n3. Serve on a plate and sprinkle with pepper",
           imagePath: "assets/sample7.jpg",
         ),
         Recipe(
@@ -429,8 +429,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "none",
           cookingTime: 20,
           difficulty: "medium",
-          ingredients: "牛肉片、洋蔥、醬油、味醂、白飯",
-          steps: "1. 洋蔥炒軟\n2. 牛肉快炒\n3. 加醬汁盛飯上",
+          ingredients: "Beef slices、Onion、soy sauce、mirin、rice",
+          steps: "1. Fry onion until soft\n2. Quickly stir-fry beef\n3. Add sauce and serve on rice",
           imagePath: "assets/sample8.jpg",
         ),
         Recipe(
@@ -440,8 +440,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "vegan",
           cookingTime: 30,
           difficulty: "easy",
-          ingredients: "番茄、胡蘿蔔、馬鈴薯、洋蔥、芹菜、鹽",
-          steps: "1. 蔬菜切塊\n2. 煮湯至軟爛\n3. 加鹽調味",
+          ingredients: "tomato、carrot、potato、onion、celery、salt",
+          steps: "1. Cut vegetables into pieces\n2. Cook until soft\n3. Add salt to taste",
           imagePath: "assets/sample9.jpg",
         ),
         Recipe(
@@ -451,8 +451,8 @@ class _HomeScreenState extends State<HomeScreen> {
           diet: "none",
           cookingTime: 35,
           difficulty: "medium",
-          ingredients: "黑巧克力、奶油、蛋、糖、麵粉、可可粉",
-          steps: "1. 巧克力奶油隔水融化\n2. 拌入蛋糖粉類\n3. 烤箱烘烤25分鐘",
+          ingredients: "dark chocolate、butter 、egg 、sugar、flour、cocoa powder",
+          steps: "1. Melt chocolate butter in water\n2. Mix in eggs, sugar and powder\n3. Bake in the oven for 25 minutes",
           imagePath: "assets/sample10.jpg",
         ),
       ];
@@ -713,7 +713,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     children: [
                       Image.asset(
-                        Localizations.localeOf(context).languageCode == 'zh'
+                        Localizations.localeOf(context).languageCode == 'en'
                             ? 'assets/logo_zh.png'
                             : 'assets/logo_en.png',
                         height: 44,

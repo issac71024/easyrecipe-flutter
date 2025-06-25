@@ -146,7 +146,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 }
 
-// --- Weather Card & suggestion ---
+// Weather Card & suggestion
 class WeatherCard extends StatefulWidget {
   final bool isZh;
   const WeatherCard({Key? key, required this.isZh}) : super(key: key);
