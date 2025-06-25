@@ -129,7 +129,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ? Image.asset(_recipe.imagePath!, height: 200, fit: BoxFit.cover)
                   : Image.file(File(_recipe.imagePath!), height: 200, fit: BoxFit.cover),
             ),
-          // 天氣建議卡片
+          // Weather Card
           weatherCard,
           const SizedBox(height: 12),
           Text('${loc.formCuisine}：${translateCuisine(loc)[_recipe.cuisine] ?? _recipe.cuisine}'),
@@ -146,7 +146,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 }
 
-// --- 天氣卡片+建議料理/金句 ---
+// --- Weather Card & suggestion ---
 class WeatherCard extends StatefulWidget {
   final bool isZh;
   const WeatherCard({Key? key, required this.isZh}) : super(key: key);
@@ -184,7 +184,7 @@ class _WeatherCardState extends State<WeatherCard> {
     }
   }
 
-  // 根據天氣溫度給建議
+  // Base on weather suggestion
   Map<String, dynamic> _getSuggestion(num? temp, bool isZh) {
     if (temp == null) {
       return {

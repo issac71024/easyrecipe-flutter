@@ -8,6 +8,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../models/recipe.dart';
 import 'recipe_form.dart';
 import '../l10n/app_localizations.dart';
@@ -15,7 +17,7 @@ import 'recipe_detail_screen.dart';
 import 'onboarding_screen.dart';
 import 'settings_screen.dart';
 
-// ========== 天氣/金句卡片元件 ==========
+// ========== Weather Card ==========
 class WeatherCard extends StatefulWidget {
   final bool isZh;
   const WeatherCard({super.key, required this.isZh});
@@ -31,6 +33,9 @@ class _WeatherCardState extends State<WeatherCard> {
   int? code;
   String? quote;
   String? suggestion;
+  String? placeEn;
+  String? placeZh;
+  bool locationDenied = false;
 
   @override
   void initState() {
@@ -46,14 +51,70 @@ class _WeatherCardState extends State<WeatherCard> {
     }
   }
 
-  void _fetchAll() {
-    fetchWeather();
+  Future<void> _fetchAll() async {
+    await fetchLocationAndWeather();
     fetchQuote();
   }
 
-  Future<void> fetchWeather() async {
-    final lat = 22.3193; // 香港
-    final lon = 114.1694;
+  Future<void> fetchLocationAndWeather() async {
+    setState(() {
+      weather = null;
+      suggestion = null;
+      icon = null;
+      temp = null;
+      placeEn = null;
+      placeZh = null;
+      locationDenied = false;
+    });
+
+    try {
+      // Step 1: Get the Location
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        setState(() {
+          locationDenied = true;
+          placeEn = "Hong Kong";
+          placeZh = "香港";
+        });
+        await fetchWeatherByLatLng(22.3193, 114.1694); // fallback to HK
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      double lat = position.latitude;
+      double lon = position.longitude;
+
+      // Step 2: Default Location
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon, localeIdentifier: widget.isZh ? 'zh_HK' : 'en');
+      String cityEn = "Hong Kong";
+      String cityZh = "香港";
+      if (placemarks.isNotEmpty) {
+        final pm = placemarks.first;
+        cityEn = pm.locality ?? pm.administrativeArea ?? pm.country ?? "Hong Kong";
+        cityZh = pm.locality ?? pm.administrativeArea ?? pm.country ?? "香港";
+      }
+      setState(() {
+        placeEn = cityEn;
+        placeZh = cityZh;
+      });
+
+      // Step 3: Get Weather
+      await fetchWeatherByLatLng(lat, lon);
+    } catch (e) {
+      setState(() {
+        weather = widget.isZh ? "無法取得天氣" : "Cannot get weather";
+        suggestion = widget.isZh ? "無法取得天氣建議" : "Unable to fetch weather suggestion";
+        placeEn = "Hong Kong";
+        placeZh = "香港";
+      });
+      await fetchWeatherByLatLng(22.3193, 114.1694); // fallback to HK
+    }
+  }
+
+  Future<void> fetchWeatherByLatLng(double lat, double lon) async {
     final url =
         'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=temperature_2m';
     try {
@@ -68,7 +129,7 @@ class _WeatherCardState extends State<WeatherCard> {
           code = _code;
           icon = weatherIcon(code ?? 0);
           weather = weatherDesc(code ?? 0, widget.isZh);
-          suggestion = weatherSuggestion(_temp, _code, widget.isZh);
+          suggestion = weatherSuggestion(_temp, _code, widget.isZh, placeEn, placeZh);
         });
       }
     } catch (e) {
@@ -81,7 +142,6 @@ class _WeatherCardState extends State<WeatherCard> {
   Future<void> fetchQuote() async {
     try {
       final lang = widget.isZh ? 'zh' : 'en';
-      // quotable.io 不支援中文，這裡簡單用固定句子
       if (lang == 'en') {
         final res = await http.get(Uri.parse('https://api.quotable.io/random?lang=en'));
         final data = json.decode(res.body);
@@ -124,113 +184,135 @@ class _WeatherCardState extends State<WeatherCard> {
     return zh ? '未知' : 'Unknown';
   }
 
-  // 只給出天氣料理建議（不指定菜式）
-  String weatherSuggestion(double? temp, int? code, bool zh) {
+  // Base on location to display
+  String weatherSuggestion(double? temp, int? code, bool zh, String? cityEn, String? cityZh) {
+    final placeEn = cityEn ?? "Your city";
+    final placeZh = cityZh ?? "你的位置";
     if (temp == null || code == null) return zh ? "建議載入中..." : "Loading...";
-    // 香港氣候習慣：29°C以上較熱, 18°C以下較冷
     if (temp >= 29) {
-      return zh ? "建議清爽料理，例如沙拉、冷麵或輕食。" : "Suggestion: Refreshing dishes like salads, cold noodles, or light meals.";
+      return zh 
+        ? "$placeZh天氣炎熱，建議清爽料理，例如沙拉、冷麵或輕食。"
+        : "$placeEn: Hot day! Try salad, cold noodles or light meals.";
     } else if (temp <= 18) {
-      return zh ? "建議熱湯、燉菜或煲仔飯等溫暖料理。" : "Suggestion: Hot soup, stew, or warm comfort food.";
+      return zh 
+        ? "$placeZh天氣較涼，建議熱湯、燉菜或煲仔飯等溫暖料理。" 
+        : "$placeEn: It's chilly. Hot soup, stew, or local comfort food is perfect!";
     } else if ([61, 63, 65, 80, 81, 82, 95, 96, 99].contains(code)) {
-      return zh ? "有雨，建議來一份熱騰騰的家常料理。" : "Rainy day! Try some hearty home-cooked food.";
+      return zh 
+        ? "$placeZh有雨，建議來一份熱騰騰的家常料理。"
+        : "$placeEn: Rainy day! Try some hearty home-cooked food.";
     }
-    return zh ? "適合炒菜、便當、壽司等簡單家常料理。" : "Great for quick stir-fries, bento, sushi or simple home cooking.";
+    return zh
+      ? "$placeZh適合炒菜、便當、壽司等簡單家常料理。"
+      : "$placeEn: Great for stir-fry, bento, sushi, or simple local dishes.";
   }
 
-@override
-Widget build(BuildContext context) {
-  final zh = widget.isZh;
-  return Card(
-    margin: const EdgeInsets.only(bottom: 10, left: 8, right: 8, top: 4),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-    elevation: 2,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(icon ?? '🌦️', style: const TextStyle(fontSize: 36)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      zh ? "香港天氣" : "Hong Kong Weather",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Row(
-                      children: [
-                        Text(
-                          weather ?? (zh ? "讀取中" : "Loading..."),
-                          style: const TextStyle(fontSize: 17),
-                        ),
-                        if (temp != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6),
-                            child: Text(
-                              '${temp!.toStringAsFixed(1)}°C',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 17,
-                                  color: Colors.teal),
-                            ),
+  @override
+  Widget build(BuildContext context) {
+    final zh = widget.isZh;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10, left: 8, right: 8, top: 4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(icon ?? '🌦️', style: const TextStyle(fontSize: 36)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        zh 
+                          ? "${placeZh ?? '香港'}天氣" 
+                          : "${placeEn ?? 'Hong Kong'} Weather",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            weather ?? (zh ? "讀取中" : "Loading..."),
+                            style: const TextStyle(fontSize: 17),
                           ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Cooking suggestion: 標題與內容分行
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.restaurant, color: Colors.teal, size: 21),
-              const SizedBox(width: 7),
-              Text(
-                zh ? "料理建議：" : "Cooking Suggestion:",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Text(
-            suggestion ?? (zh ? "建議載入中..." : "Loading..."),
-            style: TextStyle(color: Colors.teal[800], fontSize: 15),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Icon(Icons.format_quote, color: Colors.amber, size: 20),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  quote ??
-                      (zh
-                          ? "美好的一天從一頓好料理開始。"
-                          : "A good day starts with good food!"),
-                  style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    color: Colors.orange[900],
+                          if (temp != null)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 6),
+                              child: Text(
+                                '${temp!.toStringAsFixed(1)}°C',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 17,
+                                    color: Colors.teal),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.restaurant, color: Colors.teal, size: 21),
+                const SizedBox(width: 7),
+                Text(
+                  zh ? "料理建議：" : "Cooking Suggestion:",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              suggestion ?? (zh ? "建議載入中..." : "Loading..."),
+              style: TextStyle(color: Colors.teal[800], fontSize: 15),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.format_quote, color: Colors.amber, size: 20),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    quote ??
+                        (zh
+                            ? "美好的一天從一頓好料理開始。"
+                            : "A good day starts with good food!"),
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      color: Colors.orange[900],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (locationDenied)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  zh
+                    ? "未能獲取定位，只顯示預設地區天氣"
+                    : "Location not granted, using default location.",
+                  style: TextStyle(fontSize: 12, color: Colors.red[600]),
+                ),
               ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
-}
-// =================== HomeScreen 主體 ===================
+
+// =================== HomeScreen Body ==================
 class HomeScreen extends StatefulWidget {
   final void Function(Locale) onLocaleChange;
   final ValueNotifier<bool> isDarkMode;
@@ -263,7 +345,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final box = Hive.box<Recipe>('recipes');
     if (box.isEmpty) {
       final samples = [
-        // ... 你的 sample 10 個食譜 ...
         Recipe(
           titleZh: "日式照燒雞腿飯",
           titleEn: "Japanese Teriyaki Chicken Bowl",
@@ -275,7 +356,105 @@ class _HomeScreenState extends State<HomeScreen> {
           steps: "1. 雞腿煎香\n2. 下醬汁煮收汁\n3. 盛飯淋汁",
           imagePath: "assets/sample1.jpg",
         ),
-        // ... 其餘略 ...
+        Recipe(
+          titleZh: "番茄炒蛋",
+          titleEn: "Tomato Scrambled Eggs",
+          cuisine: "chinese",
+          diet: "vegetarian",
+          cookingTime: 10,
+          difficulty: "easy",
+          ingredients: "番茄、雞蛋、蔥、鹽",
+          steps: "1. 番茄切塊\n2. 蛋炒熟備用\n3. 炒番茄後回鍋蛋",
+          imagePath: "assets/sample2.jpg",
+        ),
+        Recipe(
+          titleZh: "美式鬆餅",
+          titleEn: "American Pancakes",
+          cuisine: "western",
+          diet: "none",
+          cookingTime: 25,
+          difficulty: "easy",
+          ingredients: "麵粉、牛奶、蛋、糖、泡打粉、奶油",
+          steps: "1. 混合粉類\n2. 加蛋牛奶拌勻\n3. 小火煎至金黃",
+          imagePath: "assets/sample3.jpg",
+        ),
+        Recipe(
+          titleZh: "健康藜麥沙拉",
+          titleEn: "Healthy Quinoa Salad",
+          cuisine: "western",
+          diet: "vegan",
+          cookingTime: 15,
+          difficulty: "easy",
+          ingredients: "藜麥、小黃瓜、蕃茄、檸檬、橄欖油、黑胡椒",
+          steps: "1. 藜麥煮熟放涼\n2. 蔬菜切丁拌勻\n3. 加檸檬汁橄欖油調味",
+          imagePath: "assets/sample4.jpg",
+        ),
+        Recipe(
+          titleZh: "麻婆豆腐",
+          titleEn: "Mapo Tofu",
+          cuisine: "chinese",
+          diet: "none",
+          cookingTime: 20,
+          difficulty: "medium",
+          ingredients: "嫩豆腐、豬絞肉、豆瓣醬、蔥、薑、蒜",
+          steps: "1. 爆香蔥薑蒜\n2. 下絞肉炒香\n3. 加豆腐及調味料煮滾",
+          imagePath: "assets/sample5.jpg",
+        ),
+        Recipe(
+          titleZh: "日式玉子燒",
+          titleEn: "Japanese Tamagoyaki",
+          cuisine: "japanese",
+          diet: "vegetarian",
+          cookingTime: 12,
+          difficulty: "medium",
+          ingredients: "雞蛋、糖、醬油、鹽",
+          steps: "1. 蛋液調味\n2. 分次煎成層\n3. 捲起切片",
+          imagePath: "assets/sample6.jpg",
+        ),
+        Recipe(
+          titleZh: "香煎三文魚",
+          titleEn: "Pan-Seared Salmon",
+          cuisine: "western",
+          diet: "high_protein",
+          cookingTime: 18,
+          difficulty: "easy",
+          ingredients: "三文魚、橄欖油、檸檬、鹽、黑胡椒",
+          steps: "1. 魚排兩面煎熟\n2. 檸檬汁調味\n3. 盛盤撒胡椒",
+          imagePath: "assets/sample7.jpg",
+        ),
+        Recipe(
+          titleZh: "和風牛肉丼",
+          titleEn: "Gyudon (Japanese Beef Bowl)",
+          cuisine: "japanese",
+          diet: "none",
+          cookingTime: 20,
+          difficulty: "medium",
+          ingredients: "牛肉片、洋蔥、醬油、味醂、白飯",
+          steps: "1. 洋蔥炒軟\n2. 牛肉快炒\n3. 加醬汁盛飯上",
+          imagePath: "assets/sample8.jpg",
+        ),
+        Recipe(
+          titleZh: "西式蔬菜湯",
+          titleEn: "Western Vegetable Soup",
+          cuisine: "western",
+          diet: "vegan",
+          cookingTime: 30,
+          difficulty: "easy",
+          ingredients: "番茄、胡蘿蔔、馬鈴薯、洋蔥、芹菜、鹽",
+          steps: "1. 蔬菜切塊\n2. 煮湯至軟爛\n3. 加鹽調味",
+          imagePath: "assets/sample9.jpg",
+        ),
+        Recipe(
+          titleZh: "可可布朗尼",
+          titleEn: "Chocolate Brownies",
+          cuisine: "western",
+          diet: "none",
+          cookingTime: 35,
+          difficulty: "medium",
+          ingredients: "黑巧克力、奶油、蛋、糖、麵粉、可可粉",
+          steps: "1. 巧克力奶油隔水融化\n2. 拌入蛋糖粉類\n3. 烤箱烘烤25分鐘",
+          imagePath: "assets/sample10.jpg",
+        ),
       ];
       for (final r in samples) {
         await box.add(r);
@@ -725,7 +904,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  WeatherCard(isZh: isZh), // 天氣卡片
+                  WeatherCard(isZh: isZh), 
                   if (filtered.isEmpty)
                     Center(
                       child: Column(

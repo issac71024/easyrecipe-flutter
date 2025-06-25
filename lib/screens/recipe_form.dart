@@ -99,7 +99,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     });
   }
 
-  // Preview asset、local file、no pic
+  // Preview asset,local file,no pic
   Widget _buildImagePreview() {
     if (imagePath == null || imagePath!.isEmpty) {
       return Container(

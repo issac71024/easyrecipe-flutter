@@ -23,12 +23,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         "desc": loc.onboardDesc1,
       },
       {
-        "image": "assets/onboard_add.png", //
+        "image": "assets/onboard_add.png", 
         "title": loc.onboardTitle2,
         "desc": loc.onboardDesc2,
       },
       {
-        "image": "assets/onboard_cloud.png", // 
+        "image": "assets/onboard_cloud.png", 
         "title": loc.onboardTitle3,
         "desc": loc.onboardDesc3,
       },
