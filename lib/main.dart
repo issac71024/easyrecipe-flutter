@@ -23,7 +23,7 @@ class EasyRecipeApp extends StatefulWidget {
 }
 
 class _EasyRecipeAppState extends State<EasyRecipeApp> {
-  Locale _locale = const Locale('zh'); 
+  Locale _locale = const Locale('en'); 
   final ValueNotifier<bool> isDarkMode = ValueNotifier(false);
 
   void _changeLanguage(Locale newLocale) {
