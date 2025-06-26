@@ -42,4 +42,9 @@ It features local and cloud storage, multi-language support, and real-time weath
 - Firebase configuration required
 - Location permission for weather card
 
+## Get Apk File
+1. 'flutter build apk --release'
+2. File Location:
+   - build/app/outputs/flutter-apk/app-release.apk
+
 
